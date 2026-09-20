@@ -11,10 +11,10 @@ namespace RdpManager.Services;
 public static class StoreCrypto
 {
     public const int DefaultIterations = 600_000;
-    private const int SaltSize = 32;
+    public const int SaltSize = 32;
+    public const int NonceSize = 12;
+    public const int TagSize = 16;
     private const int KeySize = 32;
-    private const int NonceSize = 12;
-    private const int TagSize = 16;
 
     public static byte[] CreateSalt() => RandomNumberGenerator.GetBytes(SaltSize);
 

@@ -45,6 +45,26 @@ internal static class NativeCredentialManager
     [DllImport("advapi32.dll", SetLastError = true, EntryPoint = "CredDeleteW", CharSet = CharSet.Unicode)]
     private static extern bool CredDelete(string target, uint type, uint flags);
 
+    [DllImport("advapi32.dll", SetLastError = true, EntryPoint = "CredReadW", CharSet = CharSet.Unicode)]
+    private static extern bool CredRead(string target, uint type, uint flags, out IntPtr credential);
+
+    [DllImport("advapi32.dll")]
+    private static extern void CredFree(IntPtr buffer);
+
+    /// <summary>
+    /// Whether a credential already exists under this name. Writing over one is destructive - a
+    /// domain password blob cannot be read back, so an entry the user saved themselves could never
+    /// be restored - which is why callers check first instead of overwriting.
+    /// </summary>
+    public static bool Exists(string target, uint type)
+    {
+        if (!CredRead(target, type, 0, out var handle))
+            return false;
+
+        CredFree(handle);
+        return true;
+    }
+
     /// <summary>
     /// Stores a credential (e.g. target "TERMSRV/hostname") so mstsc.exe can log in silently.
     /// Returns false rather than throwing: the credential types have different validation rules,

@@ -71,15 +71,35 @@ public partial class MasterPasswordWindow : Window
             return;
         }
 
+        MigrationResult migration;
         try
         {
-            Connections = _store.Initialize(masterPassword);
-            DialogResult = true;
+            migration = _store.Initialize(masterPassword);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             ErrorText.Text = $"Nem sikerült létrehozni a tárolót: {ex.Message}";
+            return;
         }
+
+        if (migration.ReadFailed)
+        {
+            ErrorText.Text = "A korábbi data\\connections.json nem olvasható, ezért a tároló nem jött létre. "
+                + "A régi fájl a helyén maradt; javítsd vagy nevezd át, és indítsd újra a programot.";
+            return;
+        }
+
+        if (migration.PasswordsLost > 0)
+        {
+            MessageBox.Show(this,
+                $"{migration.Connections.Count} kapcsolat átvéve, de közülük {migration.PasswordsLost} jelszava nem volt "
+                + "visszafejthető (a régi formátum csak azon a Windows-fiókon nyitható, amelyik mentette). "
+                + "Ezeknél a jelszót újra meg kell adni.",
+                "Részleges átvétel", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        Connections = migration.Connections;
+        DialogResult = true;
     }
 
     private void UnlockStore(string masterPassword)

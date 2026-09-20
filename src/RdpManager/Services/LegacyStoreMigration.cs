@@ -9,6 +9,15 @@ using RdpManager.Models;
 namespace RdpManager.Services;
 
 /// <summary>
+/// The outcome of reading a legacy store. A failed read is kept distinct from an empty one so a
+/// damaged file is never mistaken for "there was nothing to migrate".
+/// </summary>
+public sealed record MigrationResult(bool ReadFailed, List<RdpConnection> Connections, int PasswordsLost)
+{
+    public static MigrationResult NotAttempted { get; } = new(false, new List<RdpConnection>(), 0);
+}
+
+/// <summary>
 /// Reads the pre-master-password store format (plain JSON, passwords encrypted with DPAPI) so
 /// connections saved by an earlier build survive the switch to the encrypted store. Can be
 /// dropped once no installation carries a legacy connections.json any more.
@@ -29,7 +38,7 @@ internal static class LegacyStoreMigration
         public string? RawRdpContent { get; set; }
     }
 
-    public static List<RdpConnection> Read(string legacyFilePath)
+    public static MigrationResult Read(string legacyFilePath)
     {
         List<LegacyConnection>? legacy;
         try
@@ -38,13 +47,19 @@ internal static class LegacyStoreMigration
         }
         catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException)
         {
-            return new List<RdpConnection>();
+            return new MigrationResult(true, new List<RdpConnection>(), 0);
         }
 
-        var result = new List<RdpConnection>();
+        var connections = new List<RdpConnection>();
+        var passwordsLost = 0;
+
         foreach (var item in legacy ?? new List<LegacyConnection>())
         {
-            result.Add(new RdpConnection
+            var password = TryUnprotect(item.EncryptedPassword);
+            if (password.Length == 0 && item.EncryptedPassword.Length > 0)
+                passwordsLost++;
+
+            connections.Add(new RdpConnection
             {
                 Id = string.IsNullOrWhiteSpace(item.Id) ? Guid.NewGuid().ToString("N") : item.Id,
                 Name = item.Name,
@@ -52,12 +67,12 @@ internal static class LegacyStoreMigration
                 Port = item.Port,
                 Domain = item.Domain,
                 Username = item.Username,
-                Password = TryUnprotect(item.EncryptedPassword),
+                Password = password,
                 RawRdpContent = item.RawRdpContent,
             });
         }
 
-        return result;
+        return new MigrationResult(false, connections, passwordsLost);
     }
 
     private static string TryUnprotect(string cipherText)

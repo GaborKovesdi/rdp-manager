@@ -14,15 +14,33 @@ public partial class MainWindow : Window
 {
     private readonly ConnectionStore _store;
     private readonly ObservableCollection<RdpConnection> _connections = new();
+    private readonly RowDragReorder _rowDragReorder;
+    private bool _hasUnsavedChanges;
 
     public MainWindow(ConnectionStore store, IEnumerable<RdpConnection> connections)
     {
         InitializeComponent();
         _store = store;
         ConnectionsGrid.ItemsSource = _connections;
+        _rowDragReorder = new RowDragReorder(ConnectionsGrid, _connections, DropIndicator, OnConnectionMoved);
 
         foreach (var connection in connections)
             _connections.Add(connection);
+    }
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        if (_hasUnsavedChanges)
+        {
+            var answer = MessageBox.Show(this,
+                "A listán vannak olyan módosítások, amelyeket nem sikerült menteni. Kilépsz így?",
+                "Nem mentett módosítások", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (answer != MessageBoxResult.Yes)
+                e.Cancel = true;
+        }
+
+        base.OnClosing(e);
     }
 
     protected override void OnClosed(EventArgs e)
@@ -36,17 +54,28 @@ public partial class MainWindow : Window
 
     private RdpConnection? SelectedConnection => ConnectionsGrid.SelectedItem as RdpConnection;
 
-    private void SaveAndRefresh()
+    /// <summary>
+    /// Persists the list and reports whether that worked, so a caller never announces success
+    /// over a failed save. On failure the list on screen is ahead of the file on disk, and the
+    /// status line keeps saying so until a save goes through.
+    /// </summary>
+    private bool SaveAndRefresh()
     {
         try
         {
             _store.Save(_connections);
             ConnectionsGrid.Items.Refresh();
+            _hasUnsavedChanges = false;
+            return true;
         }
         catch (Exception ex)
         {
+            ConnectionsGrid.Items.Refresh();
+            _hasUnsavedChanges = true;
+            StatusText.Text = "Nem mentett módosítások: a lista eltér a lemezen lévő tárolótól.";
             MessageBox.Show(this, $"Nem sikerült menteni a kapcsolatokat:\n\n{ex.Message}", "Mentési hiba",
                 MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
         }
     }
 
@@ -85,8 +114,8 @@ public partial class MainWindow : Window
         foreach (var connection in imported)
             _connections.Add(connection);
 
-        SaveAndRefresh();
-        StatusText.Text = $"{imported.Count} kapcsolat importálva.";
+        if (SaveAndRefresh())
+            StatusText.Text = $"{imported.Count} kapcsolat importálva.";
 
         // Imported .rdp files never carry a usable password, so open the editor for the last one
         // to fill in credentials straight away.
@@ -155,9 +184,14 @@ public partial class MainWindow : Window
             return;
 
         _connections.Move(oldIndex, newIndex);
+        OnConnectionMoved(connection);
+    }
+
+    private void OnConnectionMoved(RdpConnection connection)
+    {
         SaveAndRefresh();
 
-        // Refresh() can drop the selection, and keeping it lets the user keep clicking the arrow.
+        // Refresh() can drop the selection, and keeping it lets the user keep moving the same row.
         ConnectionsGrid.SelectedItem = connection;
         ConnectionsGrid.ScrollIntoView(connection);
     }
@@ -172,7 +206,9 @@ public partial class MainWindow : Window
 
     private void ConnectionsGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (SelectedConnection is { } connection)
+        // Only a double click on an actual row connects; the header and the empty area below the
+        // rows would otherwise launch whatever happened to be selected.
+        if (RowDragReorder.FindRowItem(e.OriginalSource as DependencyObject) is { } connection)
             Connect(connection);
     }
 
@@ -181,8 +217,12 @@ public partial class MainWindow : Window
         try
         {
             StatusText.Text = $"Csatlakozás: {connection.Name} ({connection.DisplayTarget})...";
-            await RdpLauncher.ConnectAsync(connection);
-            StatusText.Text = $"Az mstsc elindult: {connection.Name}.";
+            var result = await RdpLauncher.ConnectAsync(connection);
+
+            StatusText.Text = result.PreservedCredentialTargets.Count == 0
+                ? $"Az mstsc elindult: {connection.Name}."
+                : $"Az mstsc elindult: {connection.Name}. Meglévő Windows-hitelesítő adat érintetlenül maradt: "
+                  + string.Join(", ", result.PreservedCredentialTargets);
         }
         catch (Exception ex)
         {

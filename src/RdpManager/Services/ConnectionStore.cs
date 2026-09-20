@@ -33,6 +33,10 @@ public sealed class ConnectionStore : IDisposable
         public string Tag { get; set; } = string.Empty;
     }
 
+    private const int CurrentVersion = 1;
+    private const int MinimumIterations = 100_000;
+    private const int MaximumIterations = 2_000_000;
+
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     private readonly string _filePath;
@@ -58,24 +62,30 @@ public sealed class ConnectionStore : IDisposable
     /// Creates a new store protected by the given master password, taking over any connections
     /// found in a legacy store. Returns the connections the new store starts with.
     /// </summary>
-    public List<RdpConnection> Initialize(string masterPassword)
+    public MigrationResult Initialize(string masterPassword)
     {
         var migrateFrom = LegacyStoreExists ? _legacyFilePath : null;
+
+        var migration = migrateFrom is not null
+            ? LegacyStoreMigration.Read(migrateFrom)
+            : MigrationResult.NotAttempted;
+
+        // A legacy file that cannot be read stops the whole thing: creating the store now would
+        // hide the old connections behind an empty one that never retries the migration, and the
+        // old file would be renamed away as though it had been taken over.
+        if (migration.ReadFailed)
+            return migration;
 
         _salt = StoreCrypto.CreateSalt();
         _iterations = StoreCrypto.DefaultIterations;
         _key = StoreCrypto.DeriveKey(masterPassword, _salt, _iterations);
 
-        var connections = migrateFrom is not null
-            ? LegacyStoreMigration.Read(migrateFrom)
-            : new List<RdpConnection>();
-
-        Save(connections);
+        Save(migration.Connections);
 
         if (migrateFrom is not null)
             ArchiveLegacyStore(migrateFrom);
 
-        return connections;
+        return migration;
     }
 
     public UnlockResult TryUnlock(string masterPassword, out List<RdpConnection> connections)
@@ -92,21 +102,30 @@ public sealed class ConnectionStore : IDisposable
             return UnlockResult.Corrupted;
         }
 
-        if (envelope is null || envelope.Iterations <= 0)
+        // Everything the file claims is checked before the key derivation runs: the work factor
+        // comes out of the file, so an absurd value would otherwise hang the app on a hostile or
+        // damaged store.
+        if (envelope is null
+            || envelope.Version != CurrentVersion
+            || envelope.Iterations < MinimumIterations
+            || envelope.Iterations > MaximumIterations)
             return UnlockResult.Corrupted;
 
         byte[] salt, nonce, ciphertext, tag;
         try
         {
-            salt = Convert.FromBase64String(envelope.Salt);
-            nonce = Convert.FromBase64String(envelope.Nonce);
-            ciphertext = Convert.FromBase64String(envelope.Ciphertext);
-            tag = Convert.FromBase64String(envelope.Tag);
+            salt = Convert.FromBase64String(envelope.Salt ?? string.Empty);
+            nonce = Convert.FromBase64String(envelope.Nonce ?? string.Empty);
+            ciphertext = Convert.FromBase64String(envelope.Ciphertext ?? string.Empty);
+            tag = Convert.FromBase64String(envelope.Tag ?? string.Empty);
         }
         catch (FormatException)
         {
             return UnlockResult.Corrupted;
         }
+
+        if (salt.Length != StoreCrypto.SaltSize || nonce.Length != StoreCrypto.NonceSize || tag.Length != StoreCrypto.TagSize)
+            return UnlockResult.Corrupted;
 
         var key = StoreCrypto.DeriveKey(masterPassword, salt, envelope.Iterations);
         byte[] plaintext;
@@ -175,7 +194,9 @@ public sealed class ConnectionStore : IDisposable
     /// <summary>Writes through a temp file so an interrupted save can't leave a truncated store behind.</summary>
     private void WriteAtomic(string content)
     {
-        var tempPath = _filePath + ".tmp";
+        // The temp name carries this process's id: two instances writing "connections.dat.tmp" at
+        // once would otherwise tear each other's half-written file.
+        var tempPath = $"{_filePath}.{Environment.ProcessId}.tmp";
         File.WriteAllText(tempPath, content);
 
         if (File.Exists(_filePath))

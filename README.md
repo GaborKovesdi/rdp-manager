@@ -48,8 +48,9 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
   is az adatot, a fájl utólagos módosítása (például egy gépnév átírása, hogy a bejelentkezés egy
   támadó szerverére menjen) nem marad észrevétlen: a tároló nem nyílik meg. A mentés ideiglenes
   fájlon keresztül, atomikusan történik, így egy megszakadt mentés nem csonkítja a tárolót.
-- **Sorrend**: a listában a ↑/↓ gombokkal átrendezhetők a kapcsolatok, a sorrend a tárolóban is
-  megmarad.
+- **Sorrend**: a listában a sorokat egérrel át lehet húzni (a kék vonal mutatja, hová kerül a
+  sor), vagy a ↑/↓ gombokkal lehet mozgatni; a sorrend a tárolóban is megmarad. Oszlopfejlécre
+  kattintva nincs rendezés, hogy a saját sorrend ne keveredjen össze.
 - **Csatlakozás egy kattintással**: a program elindítja az `mstsc.exe`-t egy generált, ideiglenes
   `.rdp` fájllal, amely a mentett megjelenítési beállításokat, a helyes felhasználónevet és a
   jelszót tartalmazza (a Windows saját `password 51` mezőjének formátumában, DPAPI-val
@@ -81,4 +82,5 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
 - `Services/RdpLauncher.cs` – az `mstsc.exe` indítása és a hitelesítő adat életciklusa.
 - `Views/MasterPasswordWindow.xaml(.cs)` – mesterjelszó bekérése induláskor.
 - `Views/ConnectionEditorWindow.xaml(.cs)` – kapcsolat hozzáadása/szerkesztése.
+- `Views/RowDragReorder.cs` – a lista sorainak egérrel húzós átrendezése.
 - `MainWindow.xaml(.cs)` – a kapcsolatlista és a fő műveletek.

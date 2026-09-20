@@ -20,19 +20,30 @@
 
         <TextBlock DockPanel.Dock="Bottom" x:Name="StatusText" Margin="0,10,0,0" Foreground="Gray"/>
 
-        <DataGrid x:Name="ConnectionsGrid"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  SelectionMode="Single"
-                  GridLinesVisibility="Horizontal"
-                  CanUserAddRows="False"
-                  MouseDoubleClick="ConnectionsGrid_MouseDoubleClick">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Név" Binding="{Binding Name}" Width="200"/>
-                <DataGridTextColumn Header="Cím" Binding="{Binding DisplayTarget}" Width="200"/>
-                <DataGridTextColumn Header="Domain" Binding="{Binding Domain}" Width="120"/>
-                <DataGridTextColumn Header="Felhasználó" Binding="{Binding Username}" Width="*"/>
-            </DataGrid.Columns>
-        </DataGrid>
+        <Grid>
+            <!-- Column sorting is off: the list order is the user's own, set by dragging or the arrows. -->
+            <DataGrid x:Name="ConnectionsGrid"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      GridLinesVisibility="Horizontal"
+                      CanUserAddRows="False"
+                      CanUserSortColumns="False"
+                      MouseDoubleClick="ConnectionsGrid_MouseDoubleClick">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Név" Binding="{Binding Name}" Width="200"/>
+                    <DataGridTextColumn Header="Cím" Binding="{Binding DisplayTarget}" Width="200"/>
+                    <DataGridTextColumn Header="Domain" Binding="{Binding Domain}" Width="120"/>
+                    <DataGridTextColumn Header="Felhasználó" Binding="{Binding Username}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <Border x:Name="DropIndicator"
+                    Height="2"
+                    VerticalAlignment="Top"
+                    IsHitTestVisible="False"
+                    Visibility="Collapsed"
+                    Background="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+        </Grid>
     </DockPanel>
 </Window>

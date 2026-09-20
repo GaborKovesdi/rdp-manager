@@ -1,12 +1,15 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using RdpManager.Models;
 
 namespace RdpManager.Services;
+
+/// <summary>What a connection attempt did beyond starting mstsc, so the UI can say so.</summary>
+public sealed record ConnectResult(IReadOnlyList<string> PreservedCredentialTargets);
 
 /// <summary>
 /// Launches mstsc.exe for a saved connection in one step: parks the password in Windows
@@ -19,13 +22,19 @@ public static class RdpLauncher
 
     private readonly record struct CredentialRef(string Target, uint Type);
 
-    /// <summary>Credentials this app created and is still responsible for removing.</summary>
-    private static readonly ConcurrentDictionary<CredentialRef, byte> OwnedCredentials = new();
+    private static readonly object Sync = new();
 
-    /// <summary>Temp .rdp files belonging to sessions that haven't been closed yet.</summary>
-    private static readonly ConcurrentDictionary<string, byte> PendingTempFiles = new();
+    /// <summary>
+    /// Credentials this app wrote, counted per open session. Two sessions can need the same entry
+    /// - the same host twice, or two hosts behind one RD Gateway - so the entry is only removed
+    /// once the last of them is gone.
+    /// </summary>
+    private static readonly Dictionary<CredentialRef, int> OwnedCredentials = new();
 
-    public static async Task ConnectAsync(RdpConnection connection)
+    /// <summary>Temp .rdp files that still need deleting; entries stay until a delete succeeds.</summary>
+    private static readonly HashSet<string> PendingTempFiles = new(StringComparer.OrdinalIgnoreCase);
+
+    public static async Task<ConnectResult> ConnectAsync(RdpConnection connection)
     {
         if (string.IsNullOrWhiteSpace(connection.Host))
             throw new InvalidOperationException("A kapcsolathoz nincs megadva gépnév vagy IP-cím.");
@@ -34,18 +43,24 @@ public static class RdpLauncher
         var credentialUser = QualifyUsername(connection);
 
         var rdpPath = RdpFileService.WriteTempRdpFile(connection);
-        PendingTempFiles[rdpPath] = 0;
+        lock (Sync)
+            PendingTempFiles.Add(rdpPath);
+
         var written = new List<CredentialRef>();
+        var preserved = new List<string>();
         Process? process = null;
 
         try
         {
             if (!string.IsNullOrEmpty(connection.Password))
             {
-                foreach (var target in targets)
-                    written.AddRange(SaveCredential(target, credentialUser, connection.Password));
+                lock (Sync)
+                {
+                    foreach (var target in targets)
+                        written.AddRange(SaveCredential(target, credentialUser, connection.Password, preserved));
+                }
 
-                if (written.Count == 0)
+                if (written.Count == 0 && preserved.Count == 0)
                     throw new InvalidOperationException(
                         "Nem sikerült eltárolni a hitelesítő adatot a Windows Credential Managerben.");
             }
@@ -90,23 +105,39 @@ public static class RdpLauncher
                 TryDeleteFile(rdpPath);
             }
         });
+
+        return new ConnectResult(preserved);
     }
 
     /// <summary>
     /// Writes the password as a domain password credential - the only type CredSSP will delegate,
     /// and what Windows itself stores for "remember me" RDP logins - plus a generic one, which is
     /// what some parts of the client (and the gateway prompt) read instead.
+    ///
+    /// A name that already holds a credential this app did not write is left completely alone.
+    /// Windows keeps one credential per name and a domain password blob can never be read back, so
+    /// overwriting an entry the user saved themselves would destroy it for good. The password also
+    /// travels inside the generated .rdp file, so skipping the write does not break the login.
     /// </summary>
-    private static List<CredentialRef> SaveCredential(string target, string username, string password)
+    private static List<CredentialRef> SaveCredential(string target, string username, string password, List<string> preserved)
     {
         var written = new List<CredentialRef>();
 
         foreach (var type in new[] { NativeCredentialManager.CredTypeDomainPassword, NativeCredentialManager.CredTypeGeneric })
         {
-            if (NativeCredentialManager.TrySave(target, username, password, type))
+            var reference = new CredentialRef(target, type);
+            var alreadyOurs = OwnedCredentials.ContainsKey(reference);
+
+            if (!alreadyOurs && NativeCredentialManager.Exists(target, type))
             {
-                var reference = new CredentialRef(target, type);
-                OwnedCredentials[reference] = 0;
+                if (!preserved.Contains(target))
+                    preserved.Add(target);
+                continue;
+            }
+
+            if (alreadyOurs || NativeCredentialManager.TrySave(target, username, password, type))
+            {
+                OwnedCredentials[reference] = OwnedCredentials.GetValueOrDefault(reference) + 1;
                 written.Add(reference);
             }
         }
@@ -149,29 +180,56 @@ public static class RdpLauncher
     /// </summary>
     public static void ReleaseAll()
     {
-        foreach (var reference in OwnedCredentials.Keys)
-            ReleaseCredential(reference);
+        List<CredentialRef> credentials;
+        List<string> files;
 
-        foreach (var path in PendingTempFiles.Keys)
+        lock (Sync)
+        {
+            credentials = OwnedCredentials.Keys.ToList();
+            files = PendingTempFiles.ToList();
+            OwnedCredentials.Clear();
+        }
+
+        foreach (var reference in credentials)
+            NativeCredentialManager.Delete(reference.Target, reference.Type);
+
+        foreach (var path in files)
             TryDeleteFile(path);
     }
 
     private static void ReleaseCredentials(IEnumerable<CredentialRef> references)
     {
-        foreach (var reference in references)
-            ReleaseCredential(reference);
-    }
+        var releasable = new List<CredentialRef>();
 
-    private static void ReleaseCredential(CredentialRef reference)
-    {
-        if (OwnedCredentials.TryRemove(reference, out _))
+        lock (Sync)
+        {
+            foreach (var reference in references)
+            {
+                if (!OwnedCredentials.TryGetValue(reference, out var count))
+                    continue;
+
+                if (count <= 1)
+                {
+                    OwnedCredentials.Remove(reference);
+                    releasable.Add(reference);
+                }
+                else
+                {
+                    OwnedCredentials[reference] = count - 1;
+                }
+            }
+        }
+
+        foreach (var reference in releasable)
             NativeCredentialManager.Delete(reference.Target, reference.Type);
     }
 
+    /// <summary>
+    /// Deletes a generated .rdp file. It holds the password (DPAPI encrypted), so a file that
+    /// cannot be deleted right now stays on the list and is tried again when the app exits.
+    /// </summary>
     private static void TryDeleteFile(string path)
     {
-        PendingTempFiles.TryRemove(path, out _);
-
         try
         {
             if (File.Exists(path))
@@ -179,7 +237,10 @@ public static class RdpLauncher
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            // Best effort cleanup; a leftover temp file in %TEMP% is harmless.
+            return;
         }
+
+        lock (Sync)
+            PendingTempFiles.Remove(path);
     }
 }
