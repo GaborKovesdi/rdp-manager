@@ -75,6 +75,18 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
 - Csatlakozáskor a Windows megjeleníti az "ismeretlen közzétevő" figyelmeztetést, mert a generált
   `.rdp` fájl nincs digitálisan aláírva. Ez a Windows RDP-kliens saját védelme.
 
+## Ikon
+
+Az alkalmazásikon a Vonal ikoncsalád „Távoli asztal” tagja; a forrása a `design/app-icon.svg`.
+A `src/RdpManager/app.ico` (16–256 px) ebből készül, módosítás után újra kell generálni:
+
+```
+python design/build-icon.py
+```
+
+(Pillow és numpy kell hozzá.) Az exe, a főablak és a párbeszédablakok mind ezt az egy fájlt
+használják.
+
 ## Projektszerkezet
 
 - `Models/RdpConnection.cs` – egy mentett kapcsolat adatai.
