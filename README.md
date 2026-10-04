@@ -54,19 +54,23 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
 - **Csatlakozás egy kattintással**: a program elindítja az `mstsc.exe`-t egy generált, ideiglenes
   `.rdp` fájllal, amely a mentett megjelenítési beállításokat, a helyes felhasználónevet és a
   jelszót tartalmazza (a Windows saját `password 51` mezőjének formátumában, DPAPI-val
-  titkosítva). Emellett a jelszót a Windows Credential Managerbe is beírja a távoli gép — és ha
-  van, az RD Gateway — `TERMSRV/<cím>` neve alatt, natív Win32 `CredWrite` hívással; a jelszó soha
-  nem kerül parancssori argumentumba. A bejegyzések csak a munkamenetig élnek
-  (`CRED_PERSIST_SESSION`), és az ideiglenes fájllal együtt törlődnek, amikor az RDP-ablak
-  bezárul — illetve az alkalmazásból kilépéskor is, ha addig nem történt meg.
+  titkosítva). A fájl egy saját, véletlen nevű mappába kerül (`%TEMP%\rdpmanager\<azonosító>\`),
+  és a kapcsolat nevét kapja — a fájlnévben nem használható karakterek helyén `_` áll —, mert az
+  `mstsc` ezt a nevet írja ki az RDP-ablak címsorába és a tálcára. Emellett a jelszót a Windows
+  Credential Managerbe is beírja a távoli gép — és ha van, az RD Gateway — `TERMSRV/<cím>` neve
+  alatt, natív Win32 `CredWrite` hívással; a jelszó soha nem kerül parancssori argumentumba. A
+  bejegyzések csak a munkamenetig élnek (`CRED_PERSIST_SESSION`), és az ideiglenes fájllal és
+  annak mappájával együtt törlődnek, amikor az RDP-ablak bezárul — illetve az alkalmazásból
+  kilépéskor is, ha addig nem történt meg.
 
 ## Ismert korlátok
 
 - A feloldás után a jelszavak a program memóriájában olvasható formában vannak (ez minden
   jelszókezelőnél így van a megnyitott munkamenet alatt).
-- A session alatt az ideiglenes `.rdp` fájl a `%TEMP%` mappában van, benne a jelszó DPAPI-val
-  titkosítva: ugyanazzal a Windows-fiókkal visszafejthető, ezért a fájl a session végén (vagy az
-  alkalmazásból kilépéskor) törlődik.
+- A session alatt az ideiglenes `.rdp` fájl a `%TEMP%\rdpmanager\<azonosító>\` mappában van,
+  benne a jelszó DPAPI-val titkosítva: ugyanazzal a Windows-fiókkal visszafejthető, ezért a fájl a
+  mappájával együtt a session végén (vagy az alkalmazásból kilépéskor) törlődik. Ha a program
+  összeomlik vagy erőszakkal leállítják, a mappa ott maradhat; ilyenkor kézzel törölhető.
 - Nincs mesterjelszó-csere funkció; jelenleg csak új tároló létrehozásával lehet jelszót váltani.
 - Csatlakozáskor a Windows megjeleníti az "ismeretlen közzétevő" figyelmeztetést, mert a generált
   `.rdp` fájl nincs digitálisan aláírva. Ez a Windows RDP-kliens saját védelme.

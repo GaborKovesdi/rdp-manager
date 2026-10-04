@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using RdpManager.Models;
@@ -240,13 +241,73 @@ public static class RdpFileService
         }
     }
 
-    /// <summary>Writes the connection's .rdp content to a fresh temp file and returns its path.</summary>
+    /// <summary>
+    /// Writes the connection's .rdp content to a fresh temp file and returns its path. mstsc puts
+    /// the file name into the session window's title - and so into the taskbar - which is why the
+    /// file is named after the connection. The folder is a fresh GUID, so stored fields still can
+    /// never steer where the file lands; only the leaf name comes from them, and it is sanitised.
+    /// </summary>
     public static string WriteTempRdpFile(RdpConnection connection)
     {
-        // The file name is built only from a fresh GUID: stored fields must never be able to
-        // steer where this gets written.
-        var path = Path.Combine(Path.GetTempPath(), $"rdpmanager-{Guid.NewGuid():N}.rdp");
-        File.WriteAllText(path, BuildRdpContent(connection));
+        var directory = Path.Combine(Path.GetTempPath(), "rdpmanager", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+
+        var path = Path.Combine(directory, ToSafeFileName(connection.Name) + ".rdp");
+        try
+        {
+            File.WriteAllText(path, BuildRdpContent(connection));
+        }
+        catch
+        {
+            // The caller never gets the path of a failed write, so nothing else would ever remove
+            // the folder - or a half-written file in it, which may already hold the password.
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+            }
+
+            throw;
+        }
+
         return path;
+    }
+
+    private const int MaxFileNameLength = 80;
+
+    // Device names Windows resolves whatever extension follows them, including the superscript
+    // COM/LPT ports and the console handles.
+    private static readonly HashSet<string> ReservedDeviceNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
+        "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "COM¹", "COM²", "COM³",
+        "LPT0", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", "LPT¹", "LPT²", "LPT³",
+    };
+
+    /// <summary>A connection name made safe to use as a single file name component.</summary>
+    public static string ToSafeFileName(string name)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var builder = new StringBuilder(name.Length);
+        foreach (var c in name)
+            builder.Append(Array.IndexOf(invalid, c) >= 0 || char.IsControl(c) ? '_' : c);
+
+        // Windows drops trailing dots and spaces, and ".." must never survive as a name.
+        var safe = builder.ToString().Trim().Trim('.', ' ');
+        if (safe.Length > MaxFileNameLength)
+        {
+            // Never cut between the two halves of a surrogate pair, such as an emoji.
+            var cut = char.IsHighSurrogate(safe[MaxFileNameLength - 1]) ? MaxFileNameLength - 1 : MaxFileNameLength;
+            safe = safe[..cut].TrimEnd('.', ' ');
+        }
+
+        // Nothing of the name survived: it was empty, or made only of characters that were replaced.
+        if (safe.All(c => c == '_'))
+            return "RDP";
+
+        // Windows ignores spaces before the extension too, so "NUL .txt" is still the NUL device.
+        return ReservedDeviceNames.Contains(safe.Split('.')[0].TrimEnd(' ')) ? "_" + safe : safe;
     }
 }
