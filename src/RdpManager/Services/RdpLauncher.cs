@@ -242,5 +242,17 @@ public static class RdpLauncher
 
         lock (Sync)
             PendingTempFiles.Remove(path);
+
+        // Each file lives alone in its own GUID folder; remove that too once it is empty.
+        try
+        {
+            if (Path.GetDirectoryName(path) is { } folder
+                && Directory.Exists(folder)
+                && !Directory.EnumerateFileSystemEntries(folder).Any())
+                Directory.Delete(folder);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
     }
 }
