@@ -11,6 +11,21 @@ távoli asztalra. Minden mentett adat egy mesterjelszóval titkosított tároló
 dotnet run --project src/RdpManager/RdpManager.csproj
 ```
 
+## Letöltés
+
+A kész, telepítés nélkül futó `RdpManager.exe` a GitHub
+[Releases](https://github.com/GaborKovesdi/rdp-manager/releases/latest) oldaláról tölthető le.
+.NET telepítése nem kell hozzá; az exe-t tedd egy saját mappába, mert az adatait mellé, a `data`
+mappába menti.
+
+Új kiadás: egy `v`-vel kezdődő tag (pl. `v1.0.0`) pusholásakor a
+`.github/workflows/release.yml` lebuildeli az exe-t, és GitHub Release-ként közzéteszi.
+
+```
+git tag v1.0.0
+git push origin v1.0.0
+```
+
 ## Portable, telepítő nélküli build készítése
 
 ```

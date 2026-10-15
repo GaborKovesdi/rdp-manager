@@ -1,0 +1,23 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Publish portable exe
+        run: dotnet publish src/RdpManager/RdpManager.csproj -c Release -r win-x64 --self-contained true -p:Version=$("$env:GITHUB_REF_NAME".TrimStart('v')) -o publish
+      - name: Create GitHub release
+        run: gh release create "$env:GITHUB_REF_NAME" publish/RdpManager.exe --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
