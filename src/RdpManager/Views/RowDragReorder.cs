@@ -184,7 +184,7 @@ public sealed class RowDragReorder
             scroller.ScrollToVerticalOffset(scroller.VerticalOffset + 1);
     }
 
-    private static T? FindAncestor<T>(DependencyObject? node) where T : DependencyObject
+    internal static T? FindAncestor<T>(DependencyObject? node) where T : DependencyObject
     {
         while (node is not null)
         {

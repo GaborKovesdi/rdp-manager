@@ -80,8 +80,13 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
   Oszlopfejlécre kattintva nincs rendezés, hogy a saját sorrend ne keveredjen össze.
 - **Kezelés**: indításkor az első kapcsolat ki van jelölve, így az Enter rögtön csatlakozik.
   Egy név elejét begépelve a lista arra a kapcsolatra ugrik. Billentyűk: Enter – csatlakozás,
-  F2 – szerkesztés, Delete – törlés, Ctrl+N – új kapcsolat, Ctrl+O – importálás. A soron jobb
-  kattintással is elérhetők a műveletek; a gombok csak akkor aktívak, ha van kijelölt kapcsolat.
+  F2 – szerkesztés, Delete – törlés, Ctrl+C – jelszó másolása, Ctrl+N – új kapcsolat, Ctrl+O –
+  importálás. A soron jobb kattintással is elérhetők a műveletek; a gombok csak akkor aktívak, ha
+  van kijelölt kapcsolat.
+- **Jelszó másolása**: ahol van mentett jelszó, a sor végén kulcs jelenik meg; arra kattintva vagy
+  a kijelölt soron Ctrl+C-vel a jelszó a vágólapra kerül. Egy perc múlva a program leveszi onnan
+  (kilépéskor azonnal), hacsak közben már mást nem másoltál. A Windows vágólap-előzményeibe
+  (Win+V) és a felhős vágólapra nem kerül be.
 - **Megjelenés**: Windows 11-es (Fluent) stílus, amely követi a rendszer világos/sötét módját.
 - **Csatlakozás egy kattintással**: a program elindítja az `mstsc.exe`-t egy generált, ideiglenes
   `.rdp` fájllal, amely a mentett megjelenítési beállításokat, a helyes felhasználónevet és a

@@ -51,7 +51,15 @@
                         <Setter Property="Margin" Value="3,0,8,0"/>
                         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
                     </Style>
+                    <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
                 </DataGrid.Resources>
+                <DataGrid.CellStyle>
+                    <!-- Only the row shows as selected, so no keyboard focus rectangle around a single cell. -->
+
+                    <Style TargetType="DataGridCell" BasedOn="{StaticResource DefaultDataGridCellStyle}">
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                    </Style>
+                </DataGrid.CellStyle>
                 <DataGrid.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="Csatlakozás" InputGestureText="Enter" FontWeight="SemiBold" Click="ConnectButton_Click"/>
@@ -64,6 +72,20 @@
                     <DataGridTextColumn Header="Név" Binding="{Binding Name}" Width="5*" ElementStyle="{StaticResource CellText}"/>
                     <DataGridTextColumn Header="Cím" Binding="{Binding DisplayTarget}" Width="4*" ElementStyle="{StaticResource CellText}"/>
                     <DataGridTextColumn Header="Felhasználó" Binding="{Binding FullUsername}" Width="4*" ElementStyle="{StaticResource CellText}"/>
+                    <!-- Not focusable, so keyboard focus stays on the row: Ctrl+C there does the same. -->
+                    <DataGridTemplateColumn Width="40" CanUserResize="False">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="&#xE8D7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"
+                                        Background="Transparent" BorderThickness="0" Padding="6,4" MinWidth="0" MinHeight="0"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center" Focusable="False"
+                                        Visibility="{Binding HasPassword, Converter={StaticResource BoolToVisibility}}"
+                                        ToolTip="Jelszó másolása a vágólapra, egy percre (Ctrl+C)"
+                                        AutomationProperties.Name="Jelszó másolása"
+                                        Click="CopyPasswordButton_Click"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
 
