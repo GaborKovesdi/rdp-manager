@@ -11,6 +11,9 @@ távoli asztalra. Minden mentett adat egy mesterjelszóval titkosított tároló
 dotnet run --project src/RdpManager/RdpManager.csproj
 ```
 
+Tesztek (a címfeldolgozás és a titkosított tároló): `dotnet test`. Kiadáskor a release workflow is
+lefuttatja őket, és hibás teszt esetén nem készül exe.
+
 ## Letöltés
 
 A kész, telepítés nélkül futó `RdpManager.exe` a GitHub
@@ -42,9 +45,7 @@ megnyitható.
 
 Induláskor az alkalmazás mesterjelszót kér:
 
-- **Első indítás**: megadsz egy új mesterjelszót (min. 8 karakter). Ha van korábbi, DPAPI-alapú
-  `connections.json` tároló a `data` mappában, annak tartalma automatikusan átkerül az új
-  titkosított tárolóba, a régi fájl pedig `connections.json.migrated` néven megmarad.
+- **Első indítás**: megadsz egy új mesterjelszót (min. 8 karakter).
 - **Későbbi indítások**: a mesterjelszóval oldod fel a tárolót.
 
 A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtatja belőle a program
@@ -107,7 +108,6 @@ használják.
 - `Models/RdpConnection.cs` – egy mentett kapcsolat adatai.
 - `Services/StoreCrypto.cs` – kulcsszármaztatás (PBKDF2) és AES-GCM titkosítás.
 - `Services/ConnectionStore.cs` – a titkosított tároló betöltése/atomikus mentése.
-- `Services/LegacyStoreMigration.cs` – a régi, DPAPI-alapú tároló átvétele.
 - `Services/RdpFileService.cs` – `.rdp` fájlok importálása/generálása.
 - `Services/NativeCredentialManager.cs` – Windows Credential Manager P/Invoke wrapper.
 - `Services/RdpLauncher.cs` – az `mstsc.exe` indítása és a hitelesítő adat életciklusa.
@@ -115,3 +115,4 @@ használják.
 - `Views/ConnectionEditorWindow.xaml(.cs)` – kapcsolat hozzáadása/szerkesztése.
 - `Views/RowDragReorder.cs` – a lista sorainak egérrel húzós átrendezése.
 - `MainWindow.xaml(.cs)` – a kapcsolatlista és a fő műveletek.
+- `tests/RdpManager.Tests` – xUnit tesztek.

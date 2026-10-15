@@ -46,6 +46,14 @@ public partial class ConnectionEditorWindow : Window
             return;
         }
 
+        // "host:port" typed into the host box would otherwise be bracketed as an IPv6 address.
+        var (parsedHost, parsedPort) = RdpFileService.ParseAddress(host);
+        if (parsedHost != host)
+        {
+            host = parsedHost;
+            PortBox.Text = parsedPort.ToString();
+        }
+
         if (!int.TryParse(PortBox.Text.Trim(), out var port) || port is <= 0 or > 65535)
         {
             ErrorText.Text = "Érvénytelen port (1-65535).";

@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <Resource Include="app.ico" />
+    <InternalsVisibleTo Include="RdpManager.Tests" />
   </ItemGroup>
 
 </Project>

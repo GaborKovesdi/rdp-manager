@@ -39,53 +39,22 @@ public sealed class ConnectionStore : IDisposable
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-    private readonly string _filePath;
-    private readonly string _legacyFilePath;
+    private readonly string _filePath = Path.Combine(AppContext.BaseDirectory, "data", "connections.dat");
 
     private byte[]? _key;
     private byte[] _salt = Array.Empty<byte>();
     private int _iterations = StoreCrypto.DefaultIterations;
 
-    public ConnectionStore()
-    {
-        var dataDir = Path.Combine(AppContext.BaseDirectory, "data");
-        Directory.CreateDirectory(dataDir);
-        _filePath = Path.Combine(dataDir, "connections.dat");
-        _legacyFilePath = Path.Combine(dataDir, "connections.json");
-    }
-
     public bool StoreExists => File.Exists(_filePath);
 
-    public bool LegacyStoreExists => !StoreExists && File.Exists(_legacyFilePath);
-
-    /// <summary>
-    /// Creates a new store protected by the given master password, taking over any connections
-    /// found in a legacy store. Returns the connections the new store starts with.
-    /// </summary>
-    public MigrationResult Initialize(string masterPassword)
+    /// <summary>Creates a new, empty store protected by the given master password.</summary>
+    public void Initialize(string masterPassword)
     {
-        var migrateFrom = LegacyStoreExists ? _legacyFilePath : null;
-
-        var migration = migrateFrom is not null
-            ? LegacyStoreMigration.Read(migrateFrom)
-            : MigrationResult.NotAttempted;
-
-        // A legacy file that cannot be read stops the whole thing: creating the store now would
-        // hide the old connections behind an empty one that never retries the migration, and the
-        // old file would be renamed away as though it had been taken over.
-        if (migration.ReadFailed)
-            return migration;
-
         _salt = StoreCrypto.CreateSalt();
         _iterations = StoreCrypto.DefaultIterations;
         _key = StoreCrypto.DeriveKey(masterPassword, _salt, _iterations);
 
-        Save(migration.Connections);
-
-        if (migrateFrom is not null)
-            ArchiveLegacyStore(migrateFrom);
-
-        return migration;
+        Save(Array.Empty<RdpConnection>());
     }
 
     public UnlockResult TryUnlock(string masterPassword, out List<RdpConnection> connections)
@@ -197,24 +166,16 @@ public sealed class ConnectionStore : IDisposable
         // The temp name carries this process's id: two instances writing "connections.dat.tmp" at
         // once would otherwise tear each other's half-written file.
         var tempPath = $"{_filePath}.{Environment.ProcessId}.tmp";
+
+        // Created here rather than at startup, so a folder the app can't write to (such as
+        // Program Files) surfaces as a save error the UI reports instead of a crash on launch.
+        Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
         File.WriteAllText(tempPath, content);
 
         if (File.Exists(_filePath))
             File.Replace(tempPath, _filePath, null);
         else
             File.Move(tempPath, _filePath);
-    }
-
-    /// <summary>Keeps the migrated legacy file around (renamed) rather than deleting the user's only copy.</summary>
-    private static void ArchiveLegacyStore(string legacyFilePath)
-    {
-        try
-        {
-            File.Move(legacyFilePath, legacyFilePath + ".migrated", overwrite: true);
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-        }
     }
 
     public void Dispose()
