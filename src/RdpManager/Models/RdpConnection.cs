@@ -18,4 +18,11 @@ public class RdpConnection
 
     [JsonIgnore]
     public string DisplayTarget => Port == 3389 ? Host : $"{Host}:{Port}";
+
+    /// <summary>"DOMAIN\user", or just the user name without a domain - as the list shows it and the .rdp file carries it.</summary>
+    [JsonIgnore]
+    public string FullUsername => string.IsNullOrWhiteSpace(Domain) ? Username : $"{Domain}\\{Username}";
+
+    /// <summary>What screen readers announce for the connection's row in the list.</summary>
+    public override string ToString() => Name;
 }

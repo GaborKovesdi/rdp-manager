@@ -75,9 +75,14 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
   is az adatot, a fájl utólagos módosítása (például egy gépnév átírása, hogy a bejelentkezés egy
   támadó szerverére menjen) nem marad észrevétlen: a tároló nem nyílik meg. A mentés ideiglenes
   fájlon keresztül, atomikusan történik, így egy megszakadt mentés nem csonkítja a tárolót.
-- **Sorrend**: a listában a sorokat egérrel át lehet húzni (a kék vonal mutatja, hová kerül a
-  sor), vagy a ↑/↓ gombokkal lehet mozgatni; a sorrend a tárolóban is megmarad. Oszlopfejlécre
-  kattintva nincs rendezés, hogy a saját sorrend ne keveredjen össze.
+- **Sorrend**: a listában a sorokat egérrel át lehet húzni (a vonal mutatja, hová kerül a sor),
+  vagy a ↑/↓ gombokkal (Alt+↑/↓) lehet mozgatni; a sorrend a tárolóban is megmarad.
+  Oszlopfejlécre kattintva nincs rendezés, hogy a saját sorrend ne keveredjen össze.
+- **Kezelés**: indításkor az első kapcsolat ki van jelölve, így az Enter rögtön csatlakozik.
+  Egy név elejét begépelve a lista arra a kapcsolatra ugrik. Billentyűk: Enter – csatlakozás,
+  F2 – szerkesztés, Delete – törlés, Ctrl+N – új kapcsolat, Ctrl+O – importálás. A soron jobb
+  kattintással is elérhetők a műveletek; a gombok csak akkor aktívak, ha van kijelölt kapcsolat.
+- **Megjelenés**: Windows 11-es (Fluent) stílus, amely követi a rendszer világos/sötét módját.
 - **Csatlakozás egy kattintással**: a program elindítja az `mstsc.exe`-t egy generált, ideiglenes
   `.rdp` fájllal, amely a mentett megjelenítési beállításokat, a helyes felhasználónevet és a
   jelszót tartalmazza (a Windows saját `password 51` mezőjének formátumában, DPAPI-val
@@ -89,6 +94,13 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
   bejegyzések csak a munkamenetig élnek (`CRED_PERSIST_SESSION`), és az ideiglenes fájllal és
   annak mappájával együtt törlődnek, amikor az RDP-ablak bezárul — illetve az alkalmazásból
   kilépéskor is, ha addig nem történt meg.
+
+## Kompatibilitás
+
+Minden új verzió megnyitja a korábbi verziók által írt `data\connections.dat` tárolót, és a
+`data` mappa mindig az exe mellett marad, így frissítéskor elég az exe-t lecserélni. Ezt teszt
+rögzíti: a `tests/RdpManager.Tests/Fixtures` mappában a kiadott verziók által írt tárolók vannak
+(ezeket soha nem szabad újragenerálni), és a kiadás csak akkor készül el, ha mind megnyílik.
 
 ## Ismert korlátok
 

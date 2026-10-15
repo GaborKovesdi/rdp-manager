@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Windows;
+using System.Windows.Input;
 using RdpManager.Models;
 using RdpManager.Services;
 
@@ -44,7 +45,14 @@ public partial class MasterPasswordWindow : Window
         }
 
         Loaded += (_, _) => (_connectionsToRekey is null ? MasterBox : CurrentBox).Focus();
+
+        // Caps Lock is the commonest reason a correct password "doesn't work", so say when it's on.
+        Activated += (_, _) => UpdateCapsLockHint();
+        PreviewKeyUp += (_, _) => UpdateCapsLockHint();
     }
+
+    private void UpdateCapsLockHint() =>
+        CapsLockHint.Visibility = Keyboard.IsKeyToggled(Key.CapsLock) ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>Change mode: re-encrypts the unlocked store, saving <paramref name="connections"/> under the new password.</summary>
     public MasterPasswordWindow(ConnectionStore store, IEnumerable<RdpConnection> connections) : this(store)
