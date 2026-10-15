@@ -196,6 +196,17 @@ public partial class MainWindow : Window
         ConnectionsGrid.ScrollIntoView(connection);
     }
 
+    private void ChangeMasterPasswordButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new MasterPasswordWindow(_store, _connections) { Owner = this };
+        if (dialog.ShowDialog() != true)
+            return;
+
+        // The change saved the whole list, including anything an earlier failed save left behind.
+        _hasUnsavedChanges = false;
+        StatusText.Text = "A mesterjelszó megváltozott.";
+    }
+
     private void ConnectButton_Click(object sender, RoutedEventArgs e)
     {
         if (SelectedConnection is { } connection)

@@ -57,6 +57,43 @@ public sealed class ConnectionStore : IDisposable
         Save(Array.Empty<RdpConnection>());
     }
 
+    /// <summary>
+    /// Re-encrypts the store under a new master password, after checking the current one so an
+    /// unlocked app left unattended can't be locked away from its owner. Returns false if the
+    /// current password is wrong. If the save fails, the old password stays in force both on disk
+    /// and here - otherwise the next ordinary save would switch passwords behind the user's back.
+    /// </summary>
+    public bool ChangeMasterPassword(string currentPassword, string newPassword, IEnumerable<RdpConnection> connections)
+    {
+        if (_key is null)
+            throw new InvalidOperationException("A tároló nincs feloldva.");
+
+        var currentKey = StoreCrypto.DeriveKey(currentPassword, _salt, _iterations);
+        var matches = CryptographicOperations.FixedTimeEquals(currentKey, _key);
+        CryptographicOperations.ZeroMemory(currentKey);
+        if (!matches)
+            return false;
+
+        var (oldKey, oldSalt, oldIterations) = (_key, _salt, _iterations);
+        _salt = StoreCrypto.CreateSalt();
+        _iterations = StoreCrypto.DefaultIterations;
+        _key = StoreCrypto.DeriveKey(newPassword, _salt, _iterations);
+
+        try
+        {
+            Save(connections);
+        }
+        catch
+        {
+            CryptographicOperations.ZeroMemory(_key);
+            (_key, _salt, _iterations) = (oldKey, oldSalt, oldIterations);
+            throw;
+        }
+
+        CryptographicOperations.ZeroMemory(oldKey);
+        return true;
+    }
+
     public UnlockResult TryUnlock(string masterPassword, out List<RdpConnection> connections)
     {
         connections = new List<RdpConnection>();

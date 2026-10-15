@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RdpManager"
         mc:Ignorable="d"
-        Title="RDP Manager" Height="480" Width="820" MinHeight="320" MinWidth="560"
+        Title="RDP Manager" Height="480" Width="820" MinHeight="320" MinWidth="720"
         Icon="pack://application:,,,/app.ico">
     <DockPanel Margin="10">
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
@@ -15,7 +15,8 @@
             <Button x:Name="DeleteButton" Content="Törlés" Padding="10,5" Margin="0,0,12,0" Click="DeleteButton_Click"/>
             <Button x:Name="MoveUpButton" Content="↑" ToolTip="Feljebb" Width="32" Padding="0,5" Margin="0,0,3,0" Click="MoveUpButton_Click"/>
             <Button x:Name="MoveDownButton" Content="↓" ToolTip="Lejjebb" Width="32" Padding="0,5" Margin="0,0,12,0" Click="MoveDownButton_Click"/>
-            <Button x:Name="ConnectButton" Content="Csatlakozás" Padding="10,5" FontWeight="Bold" Click="ConnectButton_Click"/>
+            <Button x:Name="ConnectButton" Content="Csatlakozás" Padding="10,5" Margin="0,0,12,0" FontWeight="Bold" Click="ConnectButton_Click"/>
+            <Button x:Name="ChangeMasterPasswordButton" Content="Mesterjelszó…" Padding="10,5" Click="ChangeMasterPasswordButton_Click"/>
         </StackPanel>
 
         <TextBlock DockPanel.Dock="Bottom" x:Name="StatusText" Margin="0,10,0,0" Foreground="Gray"/>
