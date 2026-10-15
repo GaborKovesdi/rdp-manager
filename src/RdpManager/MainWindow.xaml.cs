@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
@@ -83,43 +84,75 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "RDP fájl(ok) importálása",
-            Filter = "RDP fájlok (*.rdp)|*.rdp|Minden fájl (*.*)|*.*",
+            Title = "Importálás .rdp fájlból vagy másik tárolóból",
+            Filter = "RDP fájlok és tárolók (*.rdp;*.dat)|*.rdp;*.dat|Minden fájl (*.*)|*.*",
             Multiselect = true,
         };
 
         if (dialog.ShowDialog(this) != true)
             return;
 
-        var imported = new List<RdpConnection>();
+        var added = 0;
+        var skipped = 0;
+        RdpConnection? lastRdpImport = null;
+
         foreach (var file in dialog.FileNames)
         {
+            var isStore = string.Equals(Path.GetExtension(file), ".dat", StringComparison.OrdinalIgnoreCase);
+            List<RdpConnection> found;
             try
             {
-                imported.Add(RdpFileService.ParseFile(file));
+                found = isStore ? ReadOtherStore(file) : new List<RdpConnection> { RdpFileService.ParseFile(file) };
             }
             catch (Exception ex)
             {
                 MessageBox.Show(this, $"Nem sikerült importálni: {file}\n\n{ex.Message}", "Importálási hiba",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
+                continue;
+            }
+
+            foreach (var connection in found)
+            {
+                // Importing the same file twice, or a store that overlaps this one, mustn't double the list.
+                if (_connections.Any(c => c.Name == connection.Name && c.Host == connection.Host && c.Port == connection.Port
+                                          && c.Domain == connection.Domain && c.Username == connection.Username))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                _connections.Add(connection);
+                added++;
+                if (!isStore)
+                    lastRdpImport = connection;
             }
         }
 
-        if (imported.Count == 0)
+        if (added == 0)
         {
-            StatusText.Text = "Egy kapcsolat sem került importálásra.";
+            StatusText.Text = skipped == 0
+                ? "Egy kapcsolat sem került importálásra."
+                : $"Nincs új kapcsolat: mind a(z) {skipped} már szerepel a listában.";
             return;
         }
 
-        foreach (var connection in imported)
-            _connections.Add(connection);
-
         if (SaveAndRefresh())
-            StatusText.Text = $"{imported.Count} kapcsolat importálva.";
+            StatusText.Text = skipped == 0
+                ? $"{added} kapcsolat importálva."
+                : $"{added} kapcsolat importálva, {skipped} már szerepelt a listában.";
 
         // Imported .rdp files never carry a usable password, so open the editor for the last one
-        // to fill in credentials straight away.
-        EditConnection(imported[^1]);
+        // to fill in credentials straight away. Connections from another store bring their own.
+        if (lastRdpImport is not null)
+            EditConnection(lastRdpImport);
+    }
+
+    /// <summary>Another store's connections, once the user has given its master password; none if they cancel.</summary>
+    private List<RdpConnection> ReadOtherStore(string path)
+    {
+        using var other = new ConnectionStore(path);
+        var prompt = new MasterPasswordWindow(other, Path.GetFileName(path)) { Owner = this };
+        return prompt.ShowDialog() == true ? prompt.Connections : new List<RdpConnection>();
     }
 
     private void AddButton_Click(object sender, RoutedEventArgs e)

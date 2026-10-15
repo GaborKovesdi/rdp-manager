@@ -61,6 +61,16 @@ public partial class MasterPasswordWindow : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
     }
 
+    /// <summary>Import mode: unlocks another store file, whose connections end up in <see cref="Connections"/>.</summary>
+    public MasterPasswordWindow(ConnectionStore otherStore, string fileName) : this(otherStore)
+    {
+        HeadingText.Text = "Importálás másik tárolóból";
+        DescriptionText.Text = $"Add meg a(z) „{fileName}” tároló mesterjelszavát. A kapcsolatai a mostani tárolóba kerülnek, a fájl nem változik.";
+        OkButton.Content = "Importálás";
+        CancelButton.Content = "Mégse";
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+    }
+
     private void OkButton_Click(object sender, RoutedEventArgs e)
     {
         ErrorText.Text = string.Empty;
@@ -153,7 +163,7 @@ public partial class MasterPasswordWindow : Window
                 break;
 
             case UnlockResult.Corrupted:
-                ErrorText.Text = "A tárolófájl sérült vagy nem olvasható (data/connections.dat).";
+                ErrorText.Text = "A tárolófájl sérült, nem olvasható, vagy nem RDP Manager tároló.";
                 break;
         }
     }

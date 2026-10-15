@@ -57,11 +57,16 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
 
 ## Hogyan működik
 
-- **Import**: a "Importálás (.rdp)" gomb beolvassa a kiválasztott `.rdp` fájl(ok) `full address`,
+- **Import**: az "Importálás…" gomb beolvassa a kiválasztott `.rdp` fájl(ok) `full address`,
   `username` és `domain` mezőit, és a többi megjelenítési/session beállítást (felbontás,
   átjárókiszolgáló stb.) is megőrzi. A forrásfájl titkosított jelszóblobja (`password 51`) nem
   kerül be a tárolóba. Mivel exportált `.rdp` fájl soha nem tartalmaz visszafejthető jelszót,
   import után rögtön megnyílik a szerkesztő, ahol megadható a jelszó.
+- **Import másik tárolóból**: ugyanezzel a gombbal egy másik RDP Manager `connections.dat`
+  fájlja is kiválasztható. A saját mesterjelszavával feloldva a kapcsolatai (jelszavakkal együtt)
+  hozzáadódnak a mostaniakhoz; a forrásfájl nem változik. Így egyik példányból a másikba
+  másolgatás nélkül átvihetők az adatok. Az a kapcsolat, amelyik névvel, címmel, porttal,
+  domainnel és felhasználónévvel már szerepel a listában, nem kerül be még egyszer.
 - **Tárolás**: a teljes kapcsolatlista (gépnevek, felhasználónevek, jelszavak együtt) egyetlen
   AES-256-GCM titkosított blobként kerül a `data/connections.dat` fájlba. Mivel a GCM hitelesíti
   is az adatot, a fájl utólagos módosítása (például egy gépnév átírása, hogy a bejelentkezés egy

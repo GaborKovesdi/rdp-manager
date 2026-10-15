@@ -39,11 +39,17 @@ public sealed class ConnectionStore : IDisposable
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-    private readonly string _filePath = Path.Combine(AppContext.BaseDirectory, "data", "connections.dat");
+    private readonly string _filePath;
 
     private byte[]? _key;
     private byte[] _salt = Array.Empty<byte>();
     private int _iterations = StoreCrypto.DefaultIterations;
+
+    /// <param name="filePath">Another store file, for importing from it; by default the app's own store.</param>
+    public ConnectionStore(string? filePath = null)
+    {
+        _filePath = filePath ?? Path.Combine(AppContext.BaseDirectory, "data", "connections.dat");
+    }
 
     public bool StoreExists => File.Exists(_filePath);
 
