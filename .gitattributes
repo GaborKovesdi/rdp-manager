@@ -1,0 +1,2 @@
+# Store fixtures written by released builds: keep them byte for byte.
+tests/RdpManager.Tests/Fixtures/*.dat binary

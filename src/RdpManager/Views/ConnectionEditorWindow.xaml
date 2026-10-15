@@ -4,48 +4,59 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         mc:Ignorable="d"
-        Title="Kapcsolat" Height="360" Width="420" WindowStartupLocation="CenterOwner"
+        Title="Kapcsolat" Width="460" SizeToContent="Height" WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize" ShowInTaskbar="False"
         Icon="pack://application:,,,/app.ico">
-    <Grid Margin="16">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="110"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <StackPanel Margin="24,20,24,20">
+        <TextBlock Text="Név" Margin="0,0,0,4"/>
+        <TextBox x:Name="NameBox" Margin="0,0,0,4"/>
+        <TextBlock Text="Ha üresen hagyod, a gépnév lesz a neve." Margin="0,0,0,14" FontSize="12"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
 
-        <TextBlock Text="Név" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,10"/>
-        <TextBox x:Name="NameBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,10"/>
+        <!-- Address and port read as one "host:port" pair, so they share a row. -->
+        <Grid Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="96"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="Gépnév vagy IP-cím" Margin="0,0,0,4"/>
+            <TextBox x:Name="HostBox" Grid.Row="1"/>
+            <TextBlock Text="Port" Grid.Column="2" Margin="0,0,0,4"/>
+            <TextBox x:Name="PortBox" Grid.Row="1" Grid.Column="2"/>
+        </Grid>
 
-        <TextBlock Text="Gépnév / IP" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,10"/>
-        <TextBox x:Name="HostBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,10"/>
+        <Grid Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="Felhasználónév" Margin="0,0,0,4"/>
+            <TextBox x:Name="UsernameBox" Grid.Row="1"/>
+            <TextBlock Text="Domain (nem kötelező)" Grid.Column="2" Margin="0,0,0,4"/>
+            <TextBox x:Name="DomainBox" Grid.Row="1" Grid.Column="2"/>
+        </Grid>
 
-        <TextBlock Text="Port" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,10"/>
-        <TextBox x:Name="PortBox" Grid.Row="2" Grid.Column="1" Margin="0,0,0,10"/>
+        <TextBlock Text="Jelszó" Margin="0,0,0,4"/>
+        <PasswordBox x:Name="PasswordBox"/>
+        <TextBlock x:Name="PasswordHint" Text="Üresen hagyva a mentett jelszó marad." Margin="0,4,0,0" FontSize="12"
+                   Visibility="Collapsed" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
 
-        <TextBlock Text="Domain" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,10"/>
-        <TextBox x:Name="DomainBox" Grid.Row="3" Grid.Column="1" Margin="0,0,0,10"/>
+        <TextBlock x:Name="ErrorText" Margin="0,12,0,0" TextWrapping="Wrap" Visibility="Collapsed"
+                   Foreground="{DynamicResource SystemFillColorCriticalBrush}"/>
 
-        <TextBlock Text="Felhasználónév" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,10"/>
-        <TextBox x:Name="UsernameBox" Grid.Row="4" Grid.Column="1" Margin="0,0,0,10"/>
-
-        <TextBlock Text="Jelszó" Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,0,10"/>
-        <PasswordBox x:Name="PasswordBox" Grid.Row="5" Grid.Column="1" Margin="0,0,0,10"/>
-
-        <TextBlock x:Name="ErrorText" Grid.Row="6" Grid.Column="1" Foreground="Red" TextWrapping="Wrap" VerticalAlignment="Top"/>
-
-        <StackPanel Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="Mégse" Width="90" Padding="0,6" Margin="0,0,8,0" Click="CancelButton_Click" IsCancel="True"/>
-            <Button Content="Mentés" Width="90" Padding="0,6" Click="SaveButton_Click" IsDefault="True"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Mégse" MinWidth="96" Margin="0,0,8,0" Click="CancelButton_Click" IsCancel="True"/>
+            <Button Content="Mentés" MinWidth="96" Style="{StaticResource AccentButtonStyle}" Click="SaveButton_Click" IsDefault="True"/>
         </StackPanel>
-    </Grid>
+    </StackPanel>
 </Window>

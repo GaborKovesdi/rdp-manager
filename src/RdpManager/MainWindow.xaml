@@ -3,49 +3,84 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:RdpManager"
         mc:Ignorable="d"
-        Title="RDP Manager" Height="480" Width="820" MinHeight="320" MinWidth="720"
+        Title="RDP Manager" Height="520" Width="860" MinHeight="320" MinWidth="800"
         Icon="pack://application:,,,/app.ico"
-        AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop">
-    <DockPanel Margin="10">
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
-            <Button x:Name="ImportButton" Content="Importálás…" ToolTip=".rdp fájl(ok), vagy egy másik RDP Manager tároló (connections.dat) kapcsolatai. A fájlok az ablakba húzva is importálhatók." Padding="10,5" Margin="0,0,6,0" Click="ImportButton_Click"/>
-            <Button x:Name="AddButton" Content="Új kapcsolat" Padding="10,5" Margin="0,0,6,0" Click="AddButton_Click"/>
-            <Button x:Name="EditButton" Content="Szerkesztés" Padding="10,5" Margin="0,0,6,0" Click="EditButton_Click"/>
-            <Button x:Name="DeleteButton" Content="Törlés" Padding="10,5" Margin="0,0,12,0" Click="DeleteButton_Click"/>
-            <Button x:Name="MoveUpButton" Content="↑" ToolTip="Feljebb" Width="32" Padding="0,5" Margin="0,0,3,0" Click="MoveUpButton_Click"/>
-            <Button x:Name="MoveDownButton" Content="↓" ToolTip="Lejjebb" Width="32" Padding="0,5" Margin="0,0,12,0" Click="MoveDownButton_Click"/>
-            <Button x:Name="ConnectButton" Content="Csatlakozás" Padding="10,5" Margin="0,0,12,0" FontWeight="Bold" Click="ConnectButton_Click"/>
-            <Button x:Name="ChangeMasterPasswordButton" Content="Mesterjelszó…" Padding="10,5" Click="ChangeMasterPasswordButton_Click"/>
-        </StackPanel>
+        AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <DockPanel Margin="16,12,16,12">
+        <!-- The one emphasised action comes first; the rarely used master password sits apart on the right. -->
+        <DockPanel DockPanel.Dock="Top" LastChildFill="False" Margin="0,0,0,12">
+            <Button x:Name="ConnectButton" Content="Csatlakozás" Style="{StaticResource AccentButtonStyle}"
+                    ToolTip="Csatlakozás a kijelölt géphez (Enter vagy dupla kattintás)" Margin="0,0,16,0" Click="ConnectButton_Click"/>
+            <Button x:Name="AddButton" Content="Új kapcsolat" ToolTip="Ctrl+N" Margin="0,0,6,0" Click="AddButton_Click"/>
+            <Button x:Name="ImportButton" Content="Importálás…" Margin="0,0,16,0" Click="ImportButton_Click"
+                    ToolTip=".rdp fájl(ok), vagy egy másik RDP Manager tároló (connections.dat) kapcsolatai. A fájlok az ablakba húzva is importálhatók. (Ctrl+O)"/>
+            <Button x:Name="EditButton" Content="Szerkesztés" ToolTip="F2" Margin="0,0,6,0" Click="EditButton_Click"/>
+            <Button x:Name="DeleteButton" Content="Törlés" ToolTip="Delete" Margin="0,0,16,0" Click="DeleteButton_Click"/>
+            <Button x:Name="MoveUpButton" Content="↑" ToolTip="Feljebb (Alt+↑), vagy húzd a sort egérrel" MinWidth="36" Margin="0,0,4,0" Click="MoveUpButton_Click"/>
+            <Button x:Name="MoveDownButton" Content="↓" ToolTip="Lejjebb (Alt+↓), vagy húzd a sort egérrel" MinWidth="36" Click="MoveDownButton_Click"/>
+            <Button x:Name="ChangeMasterPasswordButton" DockPanel.Dock="Right" Content="Mesterjelszó…" Click="ChangeMasterPasswordButton_Click"/>
+        </DockPanel>
 
-        <TextBlock DockPanel.Dock="Bottom" x:Name="StatusText" Margin="0,10,0,0" Foreground="Gray"/>
+        <TextBlock DockPanel.Dock="Bottom" x:Name="StatusText" Margin="2,10,0,0" TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
 
         <Grid>
-            <!-- Column sorting is off: the list order is the user's own, set by dragging or the arrows. -->
+            <!-- Column sorting is off: the list order is the user's own, set by dragging or the arrows.
+                 Typing a name jumps to it. -->
             <DataGrid x:Name="ConnectionsGrid"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
                       SelectionMode="Single"
-                      GridLinesVisibility="Horizontal"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="None"
                       CanUserAddRows="False"
                       CanUserSortColumns="False"
-                      MouseDoubleClick="ConnectionsGrid_MouseDoubleClick">
+                      CanUserReorderColumns="False"
+                      CanUserResizeRows="False"
+                      IsTextSearchEnabled="True"
+                      TextSearch.TextPath="Name"
+                      MouseDoubleClick="ConnectionsGrid_MouseDoubleClick"
+                      PreviewKeyDown="ConnectionsGrid_PreviewKeyDown"
+                      PreviewMouseRightButtonDown="ConnectionsGrid_PreviewMouseRightButtonDown"
+                      ContextMenuOpening="ConnectionsGrid_ContextMenuOpening">
+                <DataGrid.Resources>
+                    <Style x:Key="CellText" TargetType="TextBlock">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="Margin" Value="3,0,8,0"/>
+                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                    </Style>
+                </DataGrid.Resources>
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Csatlakozás" InputGestureText="Enter" FontWeight="SemiBold" Click="ConnectButton_Click"/>
+                        <MenuItem Header="Szerkesztés" InputGestureText="F2" Click="EditButton_Click"/>
+                        <Separator/>
+                        <MenuItem Header="Törlés" InputGestureText="Delete" Click="DeleteButton_Click"/>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Név" Binding="{Binding Name}" Width="200"/>
-                    <DataGridTextColumn Header="Cím" Binding="{Binding DisplayTarget}" Width="200"/>
-                    <DataGridTextColumn Header="Domain" Binding="{Binding Domain}" Width="120"/>
-                    <DataGridTextColumn Header="Felhasználó" Binding="{Binding Username}" Width="*"/>
+                    <DataGridTextColumn Header="Név" Binding="{Binding Name}" Width="5*" ElementStyle="{StaticResource CellText}"/>
+                    <DataGridTextColumn Header="Cím" Binding="{Binding DisplayTarget}" Width="4*" ElementStyle="{StaticResource CellText}"/>
+                    <DataGridTextColumn Header="Felhasználó" Binding="{Binding FullUsername}" Width="4*" ElementStyle="{StaticResource CellText}"/>
                 </DataGrid.Columns>
             </DataGrid>
+
+            <StackPanel x:Name="EmptyHint" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="360"
+                        IsHitTestVisible="False" Visibility="Collapsed">
+                <TextBlock Text="Még nincs mentett kapcsolat" FontWeight="SemiBold" FontSize="16" HorizontalAlignment="Center"/>
+                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap" TextAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Text="Húzz ide .rdp fájlokat, vagy válaszd az Új kapcsolat vagy az Importálás gombot."/>
+            </StackPanel>
 
             <Border x:Name="DropIndicator"
                     Height="2"
                     VerticalAlignment="Top"
                     IsHitTestVisible="False"
                     Visibility="Collapsed"
-                    Background="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                    Background="{DynamicResource AccentFillColorDefaultBrush}"/>
         </Grid>
     </DockPanel>
 </Window>

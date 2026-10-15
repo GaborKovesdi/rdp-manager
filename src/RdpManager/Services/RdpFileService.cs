@@ -211,12 +211,8 @@ public static class RdpFileService
                 lines.Add(line);
         }
 
-        var fullUsername = string.IsNullOrWhiteSpace(connection.Domain)
-            ? connection.Username
-            : $"{connection.Domain}\\{connection.Username}";
-
         lines.Add($"full address:s:{GetAddress(connection)}");
-        lines.Add($"username:s:{fullUsername}");
+        lines.Add($"username:s:{connection.FullUsername}");
         lines.Add("prompt for credentials:i:0");
 
         // The password field mstsc itself writes when you tick "remember me": the password

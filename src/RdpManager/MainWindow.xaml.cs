@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using Microsoft.Win32;
 using RdpManager.Models;
 using RdpManager.Services;
@@ -23,11 +25,101 @@ public partial class MainWindow : Window
         InitializeComponent();
         _store = store;
         ConnectionsGrid.ItemsSource = _connections;
+
+        // A quiet selection - the accent colour at low strength under normal text - instead of the
+        // theme's solid accent block, which would compete with the Connect button. Set from code
+        // because a brush colour in XAML can't follow a theme resource.
+        // shortcut: read once at startup, so switching light/dark mode while the app runs keeps the
+        // old selection colours until a restart; listen to SystemEvents.UserPreferenceChanged if that matters.
+        ConnectionsGrid.Resources["DataGridRowSelectedBackgroundThemeBrush"] =
+            new SolidColorBrush(SystemColors.AccentColor) { Opacity = 0.3 };
+        ConnectionsGrid.Resources["DataGridRowSelectedForegroundThemeBrush"] = FindResource("TextFillColorPrimaryBrush");
         _rowDragReorder = new RowDragReorder(ConnectionsGrid, _connections, DropIndicator, OnConnectionMoved);
 
         foreach (var connection in connections)
             _connections.Add(connection);
+
+        _connections.CollectionChanged += (_, _) => UpdateState();
+        ConnectionsGrid.SelectionChanged += (_, _) => UpdateState();
+        UpdateState();
+
+        // Ready for the keyboard straight away: the first connection is selected, so Enter connects.
+        Loaded += (_, _) => SelectAndFocus(_connections.FirstOrDefault());
     }
+
+    /// <summary>Enables the row actions only when they can act, and invites a first import into an empty list.</summary>
+    private void UpdateState()
+    {
+        var index = SelectedConnection is { } selected ? _connections.IndexOf(selected) : -1;
+        ConnectButton.IsEnabled = EditButton.IsEnabled = DeleteButton.IsEnabled = index >= 0;
+        MoveUpButton.IsEnabled = index > 0;
+        MoveDownButton.IsEnabled = index >= 0 && index < _connections.Count - 1;
+        EmptyHint.Visibility = _connections.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>Selects the row and puts keyboard focus on it, so arrows, Enter and typing a name work from there.</summary>
+    private void SelectAndFocus(RdpConnection? connection)
+    {
+        if (connection is null)
+            return;
+
+        ConnectionsGrid.SelectedItem = connection;
+        ConnectionsGrid.ScrollIntoView(connection);
+        ConnectionsGrid.UpdateLayout();
+        if (ConnectionsGrid.ItemContainerGenerator.ContainerFromItem(connection) is DataGridRow row)
+            row.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+    }
+
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (Keyboard.Modifiers != ModifierKeys.Control)
+            return;
+
+        if (e.Key == Key.N)
+            AddButton_Click(sender, e);
+        else if (e.Key == Key.O)
+            ImportButton_Click(sender, e);
+        else
+            return;
+
+        e.Handled = true;
+    }
+
+    private void ConnectionsGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        var alt = Keyboard.Modifiers == ModifierKeys.Alt;
+        switch (e.Key == Key.System ? e.SystemKey : e.Key)
+        {
+            // Without this the grid would move on to the next row.
+            case Key.Enter when Keyboard.Modifiers == ModifierKeys.None:
+                ConnectButton_Click(sender, e);
+                break;
+            case Key.F2:
+                EditButton_Click(sender, e);
+                break;
+            case Key.Delete:
+                DeleteButton_Click(sender, e);
+                break;
+            case Key.Up when alt:
+                MoveSelected(-1);
+                break;
+            case Key.Down when alt:
+                MoveSelected(1);
+                break;
+            default:
+                return;
+        }
+
+        e.Handled = true;
+    }
+
+    // A right click selects the row under it first, so the menu acts on what was clicked; on empty
+    // space it clears the selection, and the menu stays closed.
+    private void ConnectionsGrid_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e) =>
+        ConnectionsGrid.SelectedItem = RowDragReorder.FindRowItem(e.OriginalSource as DependencyObject);
+
+    private void ConnectionsGrid_ContextMenuOpening(object sender, ContextMenuEventArgs e) =>
+        e.Handled = SelectedConnection is null;
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
@@ -183,6 +275,8 @@ public partial class MainWindow : Window
                 ? $"{added} kapcsolat importálva."
                 : $"{added} kapcsolat importálva, {skipped} már szerepelt a listában.";
 
+        SelectAndFocus(_connections[^1]);
+
         // Imported .rdp files never carry a usable password, so open the editor for the last one
         // to fill in credentials straight away. Connections from another store bring their own.
         if (lastRdpImport is not null)
@@ -205,6 +299,7 @@ public partial class MainWindow : Window
         {
             _connections.Add(connection);
             SaveAndRefresh();
+            SelectAndFocus(connection);
         }
     }
 
@@ -220,7 +315,10 @@ public partial class MainWindow : Window
     {
         var editor = new ConnectionEditorWindow(connection) { Owner = this };
         if (editor.ShowDialog() == true)
+        {
             SaveAndRefresh();
+            SelectAndFocus(connection);
+        }
     }
 
     private void DeleteButton_Click(object sender, RoutedEventArgs e)
@@ -236,8 +334,11 @@ public partial class MainWindow : Window
 
         if (result == MessageBoxResult.Yes)
         {
+            // The row that moves into the deleted one's place takes over the selection.
+            var index = _connections.IndexOf(connection);
             _connections.Remove(connection);
             SaveAndRefresh();
+            SelectAndFocus(_connections.ElementAtOrDefault(Math.Min(index, _connections.Count - 1)));
         }
     }
 
@@ -267,8 +368,7 @@ public partial class MainWindow : Window
         SaveAndRefresh();
 
         // Refresh() can drop the selection, and keeping it lets the user keep moving the same row.
-        ConnectionsGrid.SelectedItem = connection;
-        ConnectionsGrid.ScrollIntoView(connection);
+        SelectAndFocus(connection);
     }
 
     private void ChangeMasterPasswordButton_Click(object sender, RoutedEventArgs e)
