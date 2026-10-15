@@ -61,7 +61,10 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
   `username` és `domain` mezőit, és a többi megjelenítési/session beállítást (felbontás,
   átjárókiszolgáló stb.) is megőrzi. A forrásfájl titkosított jelszóblobja (`password 51`) nem
   kerül be a tárolóba. Mivel exportált `.rdp` fájl soha nem tartalmaz visszafejthető jelszót,
-  import után rögtön megnyílik a szerkesztő, ahol megadható a jelszó.
+  import után rögtön megnyílik a szerkesztő, ahol megadható a jelszó. A fájlok a gomb helyett
+  egyszerűen az ablakba is húzhatók (egyszerre több is).
+- **Ütköző nevek**: ha az importált kapcsolat neve már foglalt, a végére sorszám kerül
+  („szerver”, „szerver (2)”, „szerver (3)”).
 - **Import másik tárolóból**: ugyanezzel a gombbal egy másik RDP Manager `connections.dat`
   fájlja is kiválasztható. A saját mesterjelszavával feloldva a kapcsolatai (jelszavakkal együtt)
   hozzáadódnak a mostaniakhoz; a forrásfájl nem változik. Így egyik példányból a másikba

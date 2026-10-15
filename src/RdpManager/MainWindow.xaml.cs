@@ -89,16 +89,57 @@ public partial class MainWindow : Window
             Multiselect = true,
         };
 
-        if (dialog.ShowDialog(this) != true)
-            return;
+        if (dialog.ShowDialog(this) == true)
+            ImportFiles(dialog.FileNames);
+    }
 
+    private void Window_DragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = ImportableFiles(e).Length > 0 ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void Window_Drop(object sender, DragEventArgs e)
+    {
+        var files = ImportableFiles(e);
+
+        // Deferred so the drop returns at once: the import can open dialogs, and Explorer, the
+        // source of the drag, stays frozen until the drop handler has returned.
+        if (files.Length > 0)
+            Dispatcher.BeginInvoke(() => ImportFiles(files));
+    }
+
+    /// <summary>The .rdp and store files in a drag; anything else dragged along with them is ignored.</summary>
+    private static string[] ImportableFiles(DragEventArgs e) =>
+        e.Data.GetData(DataFormats.FileDrop) is string[] files
+            ? files.Where(f => IsStoreFile(f) || Path.GetExtension(f).Equals(".rdp", StringComparison.OrdinalIgnoreCase)).ToArray()
+            : Array.Empty<string>();
+
+    private static bool IsStoreFile(string path) => Path.GetExtension(path).Equals(".dat", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The name itself if no connection uses it yet, otherwise the name with the first free
+    /// number after it: "srv", then "srv (2)", "srv (3)". Names differing only in case count as taken.
+    /// </summary>
+    internal static string UniqueName(string name, IEnumerable<RdpConnection> existing)
+    {
+        var taken = existing.Select(c => c.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var candidate = name;
+        for (var number = 2; taken.Contains(candidate); number++)
+            candidate = $"{name} ({number})";
+
+        return candidate;
+    }
+
+    private void ImportFiles(IEnumerable<string> files)
+    {
         var added = 0;
         var skipped = 0;
         RdpConnection? lastRdpImport = null;
 
-        foreach (var file in dialog.FileNames)
+        foreach (var file in files)
         {
-            var isStore = string.Equals(Path.GetExtension(file), ".dat", StringComparison.OrdinalIgnoreCase);
+            var isStore = IsStoreFile(file);
             List<RdpConnection> found;
             try
             {
@@ -121,6 +162,7 @@ public partial class MainWindow : Window
                     continue;
                 }
 
+                connection.Name = UniqueName(connection.Name, _connections);
                 _connections.Add(connection);
                 added++;
                 if (!isStore)
