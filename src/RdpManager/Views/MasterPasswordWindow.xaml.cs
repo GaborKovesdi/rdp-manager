@@ -29,9 +29,7 @@ public partial class MasterPasswordWindow : Window
         if (_createMode)
         {
             HeadingText.Text = "Adj meg egy mesterjelszót";
-            DescriptionText.Text = store.LegacyStoreExists
-                ? "Ezzel a jelszóval lesz titkosítva minden mentett kapcsolat és jelszó. A korábban mentett kapcsolataid automatikusan átkerülnek az új tárolóba. Ha elfelejted a jelszót, az adatok nem állíthatók helyre."
-                : "Ezzel a jelszóval lesz titkosítva minden mentett kapcsolat és jelszó. Ha elfelejted, az adatok nem állíthatók helyre.";
+            DescriptionText.Text = "Ezzel a jelszóval lesz titkosítva minden mentett kapcsolat és jelszó. Ha elfelejted, az adatok nem állíthatók helyre.";
             OkButton.Content = "Létrehozás";
             ConfirmPanel.Visibility = Visibility.Visible;
         }
@@ -71,10 +69,9 @@ public partial class MasterPasswordWindow : Window
             return;
         }
 
-        MigrationResult migration;
         try
         {
-            migration = _store.Initialize(masterPassword);
+            _store.Initialize(masterPassword);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -82,23 +79,6 @@ public partial class MasterPasswordWindow : Window
             return;
         }
 
-        if (migration.ReadFailed)
-        {
-            ErrorText.Text = "A korábbi data\\connections.json nem olvasható, ezért a tároló nem jött létre. "
-                + "A régi fájl a helyén maradt; javítsd vagy nevezd át, és indítsd újra a programot.";
-            return;
-        }
-
-        if (migration.PasswordsLost > 0)
-        {
-            MessageBox.Show(this,
-                $"{migration.Connections.Count} kapcsolat átvéve, de közülük {migration.PasswordsLost} jelszava nem volt "
-                + "visszafejthető (a régi formátum csak azon a Windows-fiókon nyitható, amelyik mentette). "
-                + "Ezeknél a jelszót újra meg kell adni.",
-                "Részleges átvétel", MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
-
-        Connections = migration.Connections;
         DialogResult = true;
     }
 

@@ -93,7 +93,7 @@ public static class RdpFileService
     }
 
     /// <summary>Splits "host", "host:port", "[::1]" or "[::1]:port" - a bare IPv6 literal has no port part.</summary>
-    private static (string Host, int Port) ParseAddress(string value)
+    internal static (string Host, int Port) ParseAddress(string value)
     {
         value = value.Trim();
 

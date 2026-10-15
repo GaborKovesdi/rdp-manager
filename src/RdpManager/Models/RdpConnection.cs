@@ -1,11 +1,9 @@
-using System;
 using System.Text.Json.Serialization;
 
 namespace RdpManager.Models;
 
 public class RdpConnection
 {
-    public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = string.Empty;
     public string Host { get; set; } = string.Empty;
     public int Port { get; set; } = 3389;
