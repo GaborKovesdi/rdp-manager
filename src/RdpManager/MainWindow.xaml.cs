@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using RdpManager.Models;
 using RdpManager.Services;
@@ -18,6 +20,8 @@ public partial class MainWindow : Window
     private readonly ConnectionStore _store;
     private readonly ObservableCollection<RdpConnection> _connections = new();
     private readonly RowDragReorder _rowDragReorder;
+    private readonly DispatcherTimer _passwordClipboardTimer = new() { Interval = TimeSpan.FromMinutes(1) };
+    private DataObject? _copiedPassword;
     private bool _hasUnsavedChanges;
 
     public MainWindow(ConnectionStore store, IEnumerable<RdpConnection> connections)
@@ -31,8 +35,11 @@ public partial class MainWindow : Window
         // because a brush colour in XAML can't follow a theme resource.
         // shortcut: read once at startup, so switching light/dark mode while the app runs keeps the
         // old selection colours until a restart; listen to SystemEvents.UserPreferenceChanged if that matters.
-        ConnectionsGrid.Resources["DataGridRowSelectedBackgroundThemeBrush"] =
-            new SolidColorBrush(SystemColors.AccentColor) { Opacity = 0.3 };
+        var selectedBackground = new SolidColorBrush(SystemColors.AccentColor) { Opacity = 0.3 };
+        ConnectionsGrid.Resources["DataGridRowSelectedBackgroundThemeBrush"] = selectedBackground;
+        // The theme frames the focused cell; drawn in the selection's own colour the frame blends
+        // into the row, so only the row shows as selected.
+        ConnectionsGrid.Resources[DataGrid.FocusBorderBrushKey] = selectedBackground;
         ConnectionsGrid.Resources["DataGridRowSelectedForegroundThemeBrush"] = FindResource("TextFillColorPrimaryBrush");
         _rowDragReorder = new RowDragReorder(ConnectionsGrid, _connections, DropIndicator, OnConnectionMoved);
 
@@ -42,6 +49,7 @@ public partial class MainWindow : Window
         _connections.CollectionChanged += (_, _) => UpdateState();
         ConnectionsGrid.SelectionChanged += (_, _) => UpdateState();
         UpdateState();
+        _passwordClipboardTimer.Tick += (_, _) => ClearCopiedPassword();
 
         // Ready for the keyboard straight away: the first connection is selected, so Enter connects.
         Loaded += (_, _) => SelectAndFocus(_connections.FirstOrDefault());
@@ -106,6 +114,10 @@ public partial class MainWindow : Window
             case Key.Down when alt:
                 MoveSelected(1);
                 break;
+            // Instead of the grid's own copy of the row's text.
+            case Key.C when Keyboard.Modifiers == ModifierKeys.Control:
+                CopyPassword(SelectedConnection);
+                break;
             default:
                 return;
         }
@@ -139,7 +151,9 @@ public partial class MainWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         // Anything still parked for a session we started - credentials in Windows Credential
-        // Manager, temp .rdp files - would otherwise outlive the app, so drop it before going away.
+        // Manager, temp .rdp files, a copied password - would otherwise outlive the app, so drop
+        // it before going away.
+        ClearCopiedPassword();
         RdpLauncher.ReleaseAll();
         _store.Dispose();
         base.OnClosed(e);
@@ -393,9 +407,75 @@ public partial class MainWindow : Window
     private void ConnectionsGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         // Only a double click on an actual row connects; the header and the empty area below the
-        // rows would otherwise launch whatever happened to be selected.
-        if (RowDragReorder.FindRowItem(e.OriginalSource as DependencyObject) is { } connection)
+        // rows would otherwise launch whatever happened to be selected. On the key it only copies.
+        var source = e.OriginalSource as DependencyObject;
+        if (RowDragReorder.FindAncestor<Button>(source) is null && RowDragReorder.FindRowItem(source) is { } connection)
             Connect(connection);
+    }
+
+    private void CopyPasswordButton_Click(object sender, RoutedEventArgs e) =>
+        CopyPassword(((FrameworkElement)sender).DataContext as RdpConnection);
+
+    /// <summary>Puts the connection's password on the clipboard for a minute.</summary>
+    private void CopyPassword(RdpConnection? connection)
+    {
+        if (connection is null)
+        {
+            StatusText.Text = "Válassz ki egy kapcsolatot a jelszó másolásához.";
+            return;
+        }
+
+        if (!connection.HasPassword)
+        {
+            StatusText.Text = $"A(z) \"{connection.Name}\" kapcsolathoz nincs mentett jelszó.";
+            return;
+        }
+
+        var data = new DataObject(DataFormats.UnicodeText, connection.Password);
+        // A zero DWORD in these keeps the password out of the Win+V history and the cloud clipboard,
+        // where it would outlive the minute.
+        data.SetData("CanIncludeInClipboardHistory", new MemoryStream(new byte[4]));
+        data.SetData("CanUploadToCloudClipboard", new MemoryStream(new byte[4]));
+
+        try
+        {
+            // Not flushed to the system, so Clipboard.IsCurrent can tell later whether it is still ours.
+            Clipboard.SetDataObject(data, false);
+        }
+        catch (ExternalException)
+        {
+            StatusText.Text = "Nem sikerült a jelszót a vágólapra másolni: egy másik program éppen használja a vágólapot.";
+            return;
+        }
+
+        _copiedPassword = data;
+        _passwordClipboardTimer.Stop();
+        _passwordClipboardTimer.Start();
+        StatusText.Text = $"A(z) \"{connection.Name}\" jelszava a vágólapon van, egy perc múlva törlődik.";
+    }
+
+    /// <summary>Takes the copied password off the clipboard, unless something copied since has already replaced it.</summary>
+    private void ClearCopiedPassword()
+    {
+        if (_copiedPassword is null)
+            return;
+
+        try
+        {
+            if (Clipboard.IsCurrent(_copiedPassword))
+            {
+                Clipboard.Clear();
+                StatusText.Text = "A jelszó lekerült a vágólapról.";
+            }
+        }
+        catch (ExternalException)
+        {
+            // Another program has the clipboard open; the timer keeps running and tries again.
+            return;
+        }
+
+        _passwordClipboardTimer.Stop();
+        _copiedPassword = null;
     }
 
     private async void Connect(RdpConnection connection)

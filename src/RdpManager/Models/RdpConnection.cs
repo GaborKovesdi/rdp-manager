@@ -23,6 +23,10 @@ public class RdpConnection
     [JsonIgnore]
     public string FullUsername => string.IsNullOrWhiteSpace(Domain) ? Username : $"{Domain}\\{Username}";
 
+    /// <summary>Whether the list offers copying the password - the key in the row's last column.</summary>
+    [JsonIgnore]
+    public bool HasPassword => !string.IsNullOrEmpty(Password);
+
     /// <summary>What screen readers announce for the connection's row in the list.</summary>
     public override string ToString() => Name;
 }
