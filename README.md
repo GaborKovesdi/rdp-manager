@@ -47,6 +47,9 @@ Induláskor az alkalmazás mesterjelszót kér:
 
 - **Első indítás**: megadsz egy új mesterjelszót (min. 8 karakter).
 - **Későbbi indítások**: a mesterjelszóval oldod fel a tárolót.
+- **Csere**: a főablak „Mesterjelszó…” gombjával, a jelenlegi jelszó megadása után. A teljes
+  tároló az új jelszóval lesz újratitkosítva; ha a mentés nem sikerül, a régi jelszó marad
+  érvényben.
 
 A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtatja belőle a program
 (PBKDF2-HMAC-SHA256, 600 000 iteráció, véletlen salt). **Ha elfelejted, az adatok nem
@@ -87,7 +90,6 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
   benne a jelszó DPAPI-val titkosítva: ugyanazzal a Windows-fiókkal visszafejthető, ezért a fájl a
   mappájával együtt a session végén (vagy az alkalmazásból kilépéskor) törlődik. Ha a program
   összeomlik vagy erőszakkal leállítják, a mappa ott maradhat; ilyenkor kézzel törölhető.
-- Nincs mesterjelszó-csere funkció; jelenleg csak új tároló létrehozásával lehet jelszót váltani.
 - Csatlakozáskor a Windows megjeleníti az "ismeretlen közzétevő" figyelmeztetést, mert a generált
   `.rdp` fájl nincs digitálisan aláírva. Ez a Windows RDP-kliens saját védelme.
 
@@ -111,7 +113,7 @@ használják.
 - `Services/RdpFileService.cs` – `.rdp` fájlok importálása/generálása.
 - `Services/NativeCredentialManager.cs` – Windows Credential Manager P/Invoke wrapper.
 - `Services/RdpLauncher.cs` – az `mstsc.exe` indítása és a hitelesítő adat életciklusa.
-- `Views/MasterPasswordWindow.xaml(.cs)` – mesterjelszó bekérése induláskor.
+- `Views/MasterPasswordWindow.xaml(.cs)` – mesterjelszó bekérése induláskor és a mesterjelszó cseréje.
 - `Views/ConnectionEditorWindow.xaml(.cs)` – kapcsolat hozzáadása/szerkesztése.
 - `Views/RowDragReorder.cs` – a lista sorainak egérrel húzós átrendezése.
 - `MainWindow.xaml(.cs)` – a kapcsolatlista és a fő műveletek.

@@ -8,7 +8,8 @@ using RdpManager.Services;
 namespace RdpManager.Views;
 
 /// <summary>
-/// Startup gate: creates the encrypted store on first run, or unlocks it on later runs.
+/// Startup gate: creates the encrypted store on first run, or unlocks it on later runs. Opened
+/// from the main window, it changes the master password of the unlocked store instead.
 /// The master password itself is never stored anywhere - it only ever derives the store key.
 /// </summary>
 public partial class MasterPasswordWindow : Window
@@ -17,6 +18,7 @@ public partial class MasterPasswordWindow : Window
 
     private readonly ConnectionStore _store;
     private readonly bool _createMode;
+    private readonly IEnumerable<RdpConnection>? _connectionsToRekey;
 
     public List<RdpConnection> Connections { get; private set; } = new();
 
@@ -41,7 +43,22 @@ public partial class MasterPasswordWindow : Window
             ConfirmPanel.Visibility = Visibility.Collapsed;
         }
 
-        Loaded += (_, _) => MasterBox.Focus();
+        Loaded += (_, _) => (_connectionsToRekey is null ? MasterBox : CurrentBox).Focus();
+    }
+
+    /// <summary>Change mode: re-encrypts the unlocked store, saving <paramref name="connections"/> under the new password.</summary>
+    public MasterPasswordWindow(ConnectionStore store, IEnumerable<RdpConnection> connections) : this(store)
+    {
+        _connectionsToRekey = connections;
+
+        HeadingText.Text = "Mesterjelszó cseréje";
+        DescriptionText.Text = "A teljes tároló az új jelszóval lesz újratitkosítva; a régi jelszó ezután már nem nyitja meg.";
+        CurrentPanel.Visibility = Visibility.Visible;
+        ConfirmPanel.Visibility = Visibility.Visible;
+        MasterLabel.Text = "Új mesterjelszó";
+        OkButton.Content = "Csere";
+        CancelButton.Content = "Mégse";
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
     }
 
     private void OkButton_Click(object sender, RoutedEventArgs e)
@@ -49,25 +66,63 @@ public partial class MasterPasswordWindow : Window
         ErrorText.Text = string.Empty;
         var masterPassword = MasterBox.Password;
 
-        if (_createMode)
+        if (_connectionsToRekey is not null)
+            ChangePassword(masterPassword, _connectionsToRekey);
+        else if (_createMode)
             CreateStore(masterPassword);
         else
             UnlockStore(masterPassword);
     }
 
-    private void CreateStore(string masterPassword)
+    /// <summary>The rules a new master password has to meet, for a new store and a change alike.</summary>
+    private bool IsAcceptableNewPassword(string masterPassword)
     {
         if (masterPassword.Length < MinimumLength)
         {
             ErrorText.Text = $"A mesterjelszó legyen legalább {MinimumLength} karakter hosszú.";
-            return;
+            return false;
         }
 
         if (masterPassword != ConfirmBox.Password)
         {
             ErrorText.Text = "A két jelszó nem egyezik.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private void ChangePassword(string newPassword, IEnumerable<RdpConnection> connections)
+    {
+        if (!IsAcceptableNewPassword(newPassword))
+            return;
+
+        bool changed;
+        try
+        {
+            changed = _store.ChangeMasterPassword(CurrentBox.Password, newPassword, connections);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ErrorText.Text = $"Nem sikerült menteni, a régi mesterjelszó maradt érvényben: {ex.Message}";
             return;
         }
+
+        if (!changed)
+        {
+            ErrorText.Text = "A jelenlegi mesterjelszó hibás.";
+            CurrentBox.Clear();
+            CurrentBox.Focus();
+            return;
+        }
+
+        DialogResult = true;
+    }
+
+    private void CreateStore(string masterPassword)
+    {
+        if (!IsAcceptableNewPassword(masterPassword))
+            return;
 
         try
         {
