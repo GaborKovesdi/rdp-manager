@@ -9,7 +9,7 @@
         Icon="pack://application:,,,/app.ico">
     <DockPanel Margin="10">
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
-            <Button x:Name="ImportButton" Content="Importálás (.rdp)" Padding="10,5" Margin="0,0,6,0" Click="ImportButton_Click"/>
+            <Button x:Name="ImportButton" Content="Importálás…" ToolTip=".rdp fájl(ok), vagy egy másik RDP Manager tároló (connections.dat) kapcsolatai" Padding="10,5" Margin="0,0,6,0" Click="ImportButton_Click"/>
             <Button x:Name="AddButton" Content="Új kapcsolat" Padding="10,5" Margin="0,0,6,0" Click="AddButton_Click"/>
             <Button x:Name="EditButton" Content="Szerkesztés" Padding="10,5" Margin="0,0,6,0" Click="EditButton_Click"/>
             <Button x:Name="DeleteButton" Content="Törlés" Padding="10,5" Margin="0,0,12,0" Click="DeleteButton_Click"/>
