@@ -91,14 +91,11 @@ public sealed class RowDragReorder
 
     private void OnDragOver(object sender, DragEventArgs e)
     {
-        e.Handled = true;
-
+        // Any other drag - such as files from Explorer - is left for the window to handle.
         if (e.Data.GetData(DataFormat) is not RdpConnection item)
-        {
-            e.Effects = DragDropEffects.None;
             return;
-        }
 
+        e.Handled = true;
         e.Effects = DragDropEffects.Move;
         AutoScroll(e);
 
