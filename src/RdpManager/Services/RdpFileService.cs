@@ -194,22 +194,7 @@ public static class RdpFileService
     /// </summary>
     public static string BuildRdpContent(RdpConnection connection)
     {
-        var lines = new List<string>();
-
-        var sourceLines = !string.IsNullOrWhiteSpace(connection.RawRdpContent)
-            ? connection.RawRdpContent.Split('\n')
-            : DefaultTemplateLines;
-
-        foreach (var rawLine in sourceLines)
-        {
-            var line = rawLine.TrimEnd('\r').Trim();
-            if (line.Length == 0)
-                continue;
-
-            var parts = line.Split(':', 3);
-            if (parts.Length < 3 || !SkipKeys.Contains(parts[0].Trim()))
-                lines.Add(line);
-        }
+        var lines = GetSettingLines(connection);
 
         lines.Add($"full address:s:{GetAddress(connection)}");
         lines.Add($"username:s:{connection.FullUsername}");
@@ -223,6 +208,37 @@ public static class RdpFileService
 
         return string.Join("\r\n", lines);
     }
+
+    /// <summary>
+    /// The connection's own .rdp settings - the imported ones, or the defaults - as the editor's
+    /// advanced block shows them and the launched file starts out from.
+    /// </summary>
+    public static List<string> GetSettingLines(RdpConnection connection) =>
+        ParseSettingLines(!string.IsNullOrWhiteSpace(connection.RawRdpContent)
+            ? connection.RawRdpContent
+            : string.Join("\r\n", DefaultTemplateLines));
+
+    /// <summary>The non-empty lines of .rdp text, without the keys BuildRdpContent always sets itself.</summary>
+    public static List<string> ParseSettingLines(string content)
+    {
+        var lines = new List<string>();
+        foreach (var rawLine in content.Split('\n'))
+        {
+            var line = rawLine.TrimEnd('\r').Trim();
+            if (line.Length == 0)
+                continue;
+
+            var parts = line.Split(':', 3);
+            if (parts.Length < 3 || !SkipKeys.Contains(parts[0].Trim()))
+                lines.Add(line);
+        }
+
+        return lines;
+    }
+
+    /// <summary>The first line that is not a "key:type:value" .rdp setting, or null when all of them are.</summary>
+    internal static string? FindInvalidSettingLine(IEnumerable<string> lines) =>
+        lines.FirstOrDefault(line => line.Split(':', 3) is not [var key, "i" or "s" or "b", _] || key.Trim().Length == 0);
 
     private static string ProtectPassword(string password)
     {

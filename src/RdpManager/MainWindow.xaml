@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="RDP Manager" Height="520" Width="860" MinHeight="320" MinWidth="800"
+        Title="RDP Manager" Height="520" Width="860" MinHeight="320" MinWidth="820"
         Icon="pack://application:,,,/app.ico"
         AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop"
         PreviewKeyDown="Window_PreviewKeyDown">
@@ -17,6 +17,7 @@
             <Button x:Name="ImportButton" Content="Importálás…" Margin="0,0,16,0" Click="ImportButton_Click"
                     ToolTip=".rdp fájl(ok), vagy egy másik RDP Manager tároló (connections.dat) kapcsolatai. A fájlok az ablakba húzva is importálhatók. (Ctrl+O)"/>
             <Button x:Name="EditButton" Content="Szerkesztés" ToolTip="F2" Margin="0,0,6,0" Click="EditButton_Click"/>
+            <Button x:Name="DuplicateButton" Content="Duplikálás" ToolTip="Új kapcsolat a kijelölt másolataként (Ctrl+D)" Margin="0,0,6,0" Click="DuplicateButton_Click"/>
             <Button x:Name="DeleteButton" Content="Törlés" ToolTip="Delete" Margin="0,0,16,0" Click="DeleteButton_Click"/>
             <Button x:Name="MoveUpButton" Content="↑" ToolTip="Feljebb (Alt+↑), vagy húzd a sort egérrel" MinWidth="36" Margin="0,0,4,0" Click="MoveUpButton_Click"/>
             <Button x:Name="MoveDownButton" Content="↓" ToolTip="Lejjebb (Alt+↓), vagy húzd a sort egérrel" MinWidth="36" Click="MoveDownButton_Click"/>
@@ -64,6 +65,7 @@
                     <ContextMenu>
                         <MenuItem Header="Csatlakozás" InputGestureText="Enter" FontWeight="SemiBold" Click="ConnectButton_Click"/>
                         <MenuItem Header="Szerkesztés" InputGestureText="F2" Click="EditButton_Click"/>
+                        <MenuItem Header="Duplikálás" InputGestureText="Ctrl+D" Click="DuplicateButton_Click"/>
                         <Separator/>
                         <MenuItem Header="Törlés" InputGestureText="Delete" Click="DeleteButton_Click"/>
                     </ContextMenu>

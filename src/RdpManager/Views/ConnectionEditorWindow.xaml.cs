@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using RdpManager.Models;
@@ -9,6 +11,7 @@ namespace RdpManager.Views;
 public partial class ConnectionEditorWindow : Window
 {
     private readonly RdpConnection _connection;
+    private readonly List<string> _shownSettings;
 
     public ConnectionEditorWindow(RdpConnection connection)
     {
@@ -23,6 +26,8 @@ public partial class ConnectionEditorWindow : Window
         DomainBox.Text = connection.Domain;
         UsernameBox.Text = connection.Username;
         PasswordBox.Password = string.Empty;
+        _shownSettings = RdpFileService.GetSettingLines(connection);
+        AdvancedBox.Text = string.Join("\r\n", _shownSettings);
 
         if (hasPassword)
             PasswordHint.Visibility = Visibility.Visible;
@@ -63,6 +68,20 @@ public partial class ConnectionEditorWindow : Window
             PortBox.Focus();
             return;
         }
+
+        // Untouched settings stay exactly as stored, so a connection on the defaults keeps following them.
+        var settings = RdpFileService.ParseSettingLines(AdvancedBox.Text);
+        var settingsChanged = !settings.SequenceEqual(_shownSettings);
+        if (settingsChanged && RdpFileService.FindInvalidSettingLine(settings) is { } invalid)
+        {
+            ShowError($"Hibás sor a speciális beállítások között: \"{invalid}\". A sorok formája kulcs:típus:érték, a típus i, s vagy b.");
+            AdvancedExpander.IsExpanded = true;
+            AdvancedBox.Focus();
+            return;
+        }
+
+        if (settingsChanged)
+            _connection.RawRdpContent = settings.Count > 0 ? string.Join("\r\n", settings) : null;
 
         _connection.Name = name.Length > 0 ? name : host;
         _connection.Host = host;

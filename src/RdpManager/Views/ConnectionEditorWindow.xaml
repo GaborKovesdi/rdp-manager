@@ -51,6 +51,18 @@
         <TextBlock x:Name="PasswordHint" Text="Üresen hagyva a mentett jelszó marad." Margin="0,4,0,0" FontSize="12"
                    Visibility="Collapsed" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
 
+        <!-- Everything else mstsc reads from the .rdp file - display, RD Gateway, redirections - as the file's own lines. -->
+        <Expander x:Name="AdvancedExpander" Header="Speciális beállítások" Margin="0,16,0,0" HorizontalAlignment="Stretch">
+            <StackPanel Margin="0,8,0,0">
+                <TextBox x:Name="AdvancedBox" Height="180" AcceptsReturn="True" TextWrapping="NoWrap"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                         AutomationProperties.Name="Speciális beállítások"/>
+                <TextBlock Margin="0,4,0,0" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Text="Az .rdp fájl sorai (kulcs:típus:érték), pl. felbontás, több monitor, RD Gateway. A cím, a felhasználó és a jelszó a fenti mezőkből kerül bele. Üresen hagyva az alapértelmezések érvényesek."/>
+            </StackPanel>
+        </Expander>
+
         <TextBlock x:Name="ErrorText" Margin="0,12,0,0" TextWrapping="Wrap" Visibility="Collapsed"
                    Foreground="{DynamicResource SystemFillColorCriticalBrush}"/>
 

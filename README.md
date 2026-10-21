@@ -75,13 +75,20 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
   is az adatot, a fájl utólagos módosítása (például egy gépnév átírása, hogy a bejelentkezés egy
   támadó szerverére menjen) nem marad észrevétlen: a tároló nem nyílik meg. A mentés ideiglenes
   fájlon keresztül, atomikusan történik, így egy megszakadt mentés nem csonkítja a tárolót.
+- **Duplikálás**: a „Duplikálás” gomb (Ctrl+D) a kijelölt kapcsolat másolatát — jelszóval és
+  beállításokkal együtt — nyitja meg a szerkesztőben, sorszámozott névvel; mentéskor az eredeti
+  alá kerül, Mégse esetén nem jön létre.
+- **Speciális beállítások**: a szerkesztő „Speciális beállítások” blokkjában a kapcsolat összes
+  többi `.rdp` beállítása (felbontás, több monitor, RD Gateway, átirányítások stb.) soronként,
+  `kulcs:típus:érték` formában szerkeszthető. A cím, a felhasználó és a jelszó mindig a fenti
+  mezőkből kerül a fájlba; a blokkot kiürítve az alapértelmezett beállítások érvényesek.
 - **Sorrend**: a listában a sorokat egérrel át lehet húzni (a vonal mutatja, hová kerül a sor),
   vagy a ↑/↓ gombokkal (Alt+↑/↓) lehet mozgatni; a sorrend a tárolóban is megmarad.
   Oszlopfejlécre kattintva nincs rendezés, hogy a saját sorrend ne keveredjen össze.
 - **Kezelés**: indításkor az első kapcsolat ki van jelölve, így az Enter rögtön csatlakozik.
   Egy név elejét begépelve a lista arra a kapcsolatra ugrik. Billentyűk: Enter – csatlakozás,
-  F2 – szerkesztés, Delete – törlés, Ctrl+C – jelszó másolása, Ctrl+N – új kapcsolat, Ctrl+O –
-  importálás. A soron jobb kattintással is elérhetők a műveletek; a gombok csak akkor aktívak, ha
+  F2 – szerkesztés, Ctrl+D – duplikálás, Delete – törlés, Ctrl+C – jelszó másolása, Ctrl+N – új
+  kapcsolat, Ctrl+O – importálás. A soron jobb kattintással is elérhetők a műveletek; a gombok csak akkor aktívak, ha
   van kijelölt kapcsolat.
 - **Jelszó másolása**: ahol van mentett jelszó, a sor végén kulcs jelenik meg; arra kattintva vagy
   a kijelölt soron Ctrl+C-vel a jelszó a vágólapra kerül. Egy perc múlva a program leveszi onnan
