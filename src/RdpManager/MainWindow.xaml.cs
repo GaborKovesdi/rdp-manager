@@ -59,7 +59,7 @@ public partial class MainWindow : Window
     private void UpdateState()
     {
         var index = SelectedConnection is { } selected ? _connections.IndexOf(selected) : -1;
-        ConnectButton.IsEnabled = EditButton.IsEnabled = DeleteButton.IsEnabled = index >= 0;
+        ConnectButton.IsEnabled = EditButton.IsEnabled = DuplicateButton.IsEnabled = DeleteButton.IsEnabled = index >= 0;
         MoveUpButton.IsEnabled = index > 0;
         MoveDownButton.IsEnabled = index >= 0 && index < _connections.Count - 1;
         EmptyHint.Visibility = _connections.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -104,6 +104,9 @@ public partial class MainWindow : Window
                 break;
             case Key.F2:
                 EditButton_Click(sender, e);
+                break;
+            case Key.D when Keyboard.Modifiers == ModifierKeys.Control:
+                DuplicateButton_Click(sender, e);
                 break;
             case Key.Delete:
                 DeleteButton_Click(sender, e);
@@ -332,6 +335,26 @@ public partial class MainWindow : Window
         {
             SaveAndRefresh();
             SelectAndFocus(connection);
+        }
+    }
+
+    private void DuplicateButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedConnection is not { } original)
+        {
+            StatusText.Text = "Válassz ki egy kapcsolatot a duplikáláshoz.";
+            return;
+        }
+
+        // The copy joins the list only once saved, so cancelling the editor leaves nothing behind.
+        var copy = original.Clone();
+        copy.Name = UniqueName(original.Name, _connections);
+        var editor = new ConnectionEditorWindow(copy) { Owner = this, Title = "Kapcsolat duplikálása" };
+        if (editor.ShowDialog() == true)
+        {
+            _connections.Insert(_connections.IndexOf(original) + 1, copy);
+            SaveAndRefresh();
+            SelectAndFocus(copy);
         }
     }
 

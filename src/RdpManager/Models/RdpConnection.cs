@@ -13,7 +13,7 @@ public class RdpConnection
     /// <summary>Only ever reaches disk inside the master-password-encrypted store envelope.</summary>
     public string Password { get; set; } = string.Empty;
 
-    /// <summary>Display/session settings from an imported .rdp file, reused when launching.</summary>
+    /// <summary>Display/session settings from an imported .rdp file or the editor's advanced block, reused when launching; null means the defaults.</summary>
     public string? RawRdpContent { get; set; }
 
     [JsonIgnore]
@@ -26,6 +26,9 @@ public class RdpConnection
     /// <summary>Whether the list offers copying the password - the key in the row's last column.</summary>
     [JsonIgnore]
     public bool HasPassword => !string.IsNullOrEmpty(Password);
+
+    /// <summary>A separate copy of every field, the password and the .rdp settings included.</summary>
+    public RdpConnection Clone() => (RdpConnection)MemberwiseClone();
 
     /// <summary>What screen readers announce for the connection's row in the list.</summary>
     public override string ToString() => Name;
