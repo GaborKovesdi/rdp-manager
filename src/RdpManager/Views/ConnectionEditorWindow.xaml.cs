@@ -29,8 +29,10 @@ public partial class ConnectionEditorWindow : Window
         _shownSettings = RdpFileService.GetSettingLines(connection);
         AdvancedBox.Text = string.Join("\r\n", _shownSettings);
 
-        if (hasPassword)
-            PasswordHint.Visibility = Visibility.Visible;
+        // The box always starts empty, so this line is what tells whether a password is stored, and since when.
+        PasswordHint.Text = !hasPassword ? "Nincs mentett jelszó."
+            : connection.PasswordSavedAt is { } savedAt ? $"Van mentett jelszó, mentve: {savedAt.LocalDateTime:g}. Üresen hagyva megmarad."
+            : "Van mentett jelszó. Üresen hagyva megmarad.";
 
         // A fresh import has everything but the password, which is what the editor was opened for.
         Loaded += (_, _) => (connection.Host.Length > 0 && !hasPassword ? (Control)PasswordBox : NameBox).Focus();
@@ -90,7 +92,10 @@ public partial class ConnectionEditorWindow : Window
         _connection.Username = UsernameBox.Text.Trim();
 
         if (!string.IsNullOrEmpty(PasswordBox.Password))
+        {
             _connection.Password = PasswordBox.Password;
+            _connection.PasswordSavedAt = DateTimeOffset.Now;
+        }
 
         DialogResult = true;
     }

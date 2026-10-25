@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json.Serialization;
 
 namespace RdpManager.Models;
@@ -12,6 +13,9 @@ public class RdpConnection
 
     /// <summary>Only ever reaches disk inside the master-password-encrypted store envelope.</summary>
     public string Password { get; set; } = string.Empty;
+
+    /// <summary>When the password was last entered in the editor; null for passwords from stores written before this was kept.</summary>
+    public DateTimeOffset? PasswordSavedAt { get; set; }
 
     /// <summary>Display/session settings from an imported .rdp file or the editor's advanced block, reused when launching; null means the defaults.</summary>
     public string? RawRdpContent { get; set; }

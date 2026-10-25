@@ -90,6 +90,8 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
   F2 – szerkesztés, Ctrl+D – duplikálás, Delete – törlés, Ctrl+C – jelszó másolása, Ctrl+N – új
   kapcsolat, Ctrl+O – importálás. A soron jobb kattintással is elérhetők a műveletek; a gombok csak akkor aktívak, ha
   van kijelölt kapcsolat.
+- **Mentett jelszó**: a szerkesztő jelszómezője mindig üresen nyílik, alatta viszont látszik, van-e
+  mentett jelszó, és mikor mentették. A régebbi verzióval mentett jelszavaknál nincs időpont.
 - **Jelszó másolása**: ahol van mentett jelszó, a sor végén kulcs jelenik meg; arra kattintva vagy
   a kijelölt soron Ctrl+C-vel a jelszó a vágólapra kerül. Egy perc múlva a program leveszi onnan
   (kilépéskor azonnal), hacsak közben már mást nem másoltál. A Windows vágólap-előzményeibe

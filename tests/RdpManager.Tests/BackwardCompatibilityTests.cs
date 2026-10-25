@@ -26,6 +26,7 @@ public class BackwardCompatibilityTests
                 Assert.Equal("CORP", c.Domain);
                 Assert.Equal("anna", c.Username);
                 Assert.Equal("jelszó-1", c.Password);
+                Assert.Null(c.PasswordSavedAt);
                 Assert.Equal("screen mode id:i:2\r\ndesktopwidth:i:1280", c.RawRdpContent);
             },
             c =>
