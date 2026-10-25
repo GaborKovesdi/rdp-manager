@@ -48,8 +48,8 @@
 
         <TextBlock Text="Jelszó" Margin="0,0,0,4"/>
         <PasswordBox x:Name="PasswordBox"/>
-        <TextBlock x:Name="PasswordHint" Text="Üresen hagyva a mentett jelszó marad." Margin="0,4,0,0" FontSize="12"
-                   Visibility="Collapsed" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+        <TextBlock x:Name="PasswordHint" Margin="0,4,0,0" FontSize="12" TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
 
         <!-- Everything else mstsc reads from the .rdp file - display, RD Gateway, redirections - as the file's own lines. -->
         <Expander x:Name="AdvancedExpander" Header="Speciális beállítások" Margin="0,16,0,0" HorizontalAlignment="Stretch">

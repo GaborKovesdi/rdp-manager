@@ -21,7 +21,10 @@ public class ConnectionStoreTests
 
         var store = new ConnectionStore();
         store.Initialize(MasterPassword);
-        connections = new List<RdpConnection> { new() { Name = "a", Host = "srv", Password = "secret" } };
+        connections = new List<RdpConnection>
+        {
+            new() { Name = "a", Host = "srv", Password = "secret", PasswordSavedAt = new DateTimeOffset(2026, 10, 25, 14, 32, 0, TimeSpan.FromHours(2)) },
+        };
         store.Save(connections);
         return store;
     }
@@ -39,7 +42,9 @@ public class ConnectionStoreTests
 
         Assert.Equal(UnlockResult.WrongPassword, Unlock("wrong password", out _));
         Assert.Equal(UnlockResult.Success, Unlock(MasterPassword, out var loaded));
-        Assert.Equal("secret", Assert.Single(loaded).Password);
+        var connection = Assert.Single(loaded);
+        Assert.Equal("secret", connection.Password);
+        Assert.Equal(new DateTimeOffset(2026, 10, 25, 14, 32, 0, TimeSpan.FromHours(2)), connection.PasswordSavedAt);
 
         var envelope = JsonNode.Parse(File.ReadAllText(DataFile))!;
         var ciphertext = Convert.FromBase64String((string)envelope["Ciphertext"]!);
