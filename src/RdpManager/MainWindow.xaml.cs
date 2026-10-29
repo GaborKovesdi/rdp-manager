@@ -506,7 +506,7 @@ public partial class MainWindow : Window
         try
         {
             StatusText.Text = $"Csatlakozás: {connection.Name} ({connection.DisplayTarget})...";
-            var result = await RdpLauncher.ConnectAsync(connection);
+            var result = await RdpLauncher.ConnectAsync(connection, () => Dispatcher.InvokeAsync(() => CopyPassword(connection)));
 
             StatusText.Text = result.PreservedCredentialTargets.Count == 0
                 ? $"Az mstsc elindult: {connection.Name}."

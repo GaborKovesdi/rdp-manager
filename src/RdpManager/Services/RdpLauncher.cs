@@ -34,7 +34,11 @@ public static class RdpLauncher
     /// <summary>Temp .rdp files that still need deleting; entries stay until a delete succeeds.</summary>
     private static readonly HashSet<string> PendingTempFiles = new(StringComparer.OrdinalIgnoreCase);
 
-    public static async Task<ConnectResult> ConnectAsync(RdpConnection connection)
+    /// <param name="copyPassword">
+    /// Called, from a background thread, when Windows asks for the password anyway and this app
+    /// cannot type it in itself; it should put the password on the clipboard.
+    /// </param>
+    public static async Task<ConnectResult> ConnectAsync(RdpConnection connection, Action copyPassword)
     {
         if (string.IsNullOrWhiteSpace(connection.Host))
             throw new InvalidOperationException("A kapcsolathoz nincs megadva gépnév vagy IP-cím.");
@@ -76,7 +80,13 @@ public static class RdpLauncher
                 throw new InvalidOperationException("Nem sikerült elindítani az mstsc.exe-t.");
 
             var processId = process.Id;
-            _ = Task.Run(() => SecurityPrompt.AcceptAsync(processId));
+            _ = Task.Run(() => MstscPrompts.AcceptSecurityWarningAsync(processId));
+
+            if (!string.IsNullOrEmpty(connection.Password))
+            {
+                var (host, username, password) = (connection.Host, connection.FullUsername, connection.Password);
+                _ = Task.Run(() => MstscPrompts.AnswerPasswordPromptAsync(processId, host, username, password, copyPassword));
+            }
 
             // mstsc stays open for the whole session, so an immediate exit means it refused to
             // start at all - report that instead of claiming success.
