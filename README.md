@@ -124,8 +124,13 @@ rögzíti: a `tests/RdpManager.Tests/Fixtures` mappában a kiadott verziók ált
   benne a jelszó DPAPI-val titkosítva: ugyanazzal a Windows-fiókkal visszafejthető, ezért a fájl a
   mappájával együtt a session végén (vagy az alkalmazásból kilépéskor) törlődik. Ha a program
   összeomlik vagy erőszakkal leállítják, a mappa ott maradhat; ilyenkor kézzel törölhető.
-- Csatlakozáskor a Windows megjeleníti az "ismeretlen közzétevő" figyelmeztetést, mert a generált
-  `.rdp` fájl nincs digitálisan aláírva. Ez a Windows RDP-kliens saját védelme.
+- Csatlakozáskor a Windows "ismeretlen közzétevő" figyelmeztetést mutat, mert a generált `.rdp`
+  fájl nincs digitálisan aláírva. A 2026-os Windows-frissítés óta ebben az ablakban minden
+  átirányítás (vágólap, meghajtók, nyomtatók stb.) alapból ki van kapcsolva, és nincs „ne
+  kérdezze újra” lehetőség. A program ezért a saját `mstsc`-folyamatának ablakában bepipálja
+  azokat az átirányításokat, amelyeket a kapcsolat beállításai kérnek, és megnyomja a
+  Csatlakozás gombot. Ha egy pipát nem sikerül betenni, az ablak a felhasználóra marad.
+  Régebbi Windowson az ablak a régi formájában jelenik meg, és nem töltődik ki automatikusan.
 
 ## Ikon
 

@@ -75,6 +75,9 @@ public static class RdpLauncher
             if (process is null)
                 throw new InvalidOperationException("Nem sikerült elindítani az mstsc.exe-t.");
 
+            var processId = process.Id;
+            _ = Task.Run(() => SecurityPrompt.AcceptAsync(processId));
+
             // mstsc stays open for the whole session, so an immediate exit means it refused to
             // start at all - report that instead of claiming success.
             var exitedImmediately = await Task.Run(() => process.WaitForExit(EarlyFailureWindowMs));
