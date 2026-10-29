@@ -108,6 +108,16 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
   bejegyzések csak a munkamenetig élnek (`CRED_PERSIST_SESSION`), és az ideiglenes fájllal és
   annak mappájával együtt törlődnek, amikor az RDP-ablak bezárul — illetve az alkalmazásból
   kilépéskor is, ha addig nem történt meg.
+- **Jelszókérés**: ha a szerveren be van állítva, hogy csatlakozáskor mindig kérje a jelszót, a
+  Windows a mentett jelszó ellenére feldob egy „Windows biztonság” ablakot. Ezt az ablakot a
+  Windows szándékosan a szokásosnál magasabb szinten futtatja, ezért egy normál program nem
+  írhat bele. Normál indításkor ezért a program a jelszót a vágólapra teszi, ugyanúgy, mint a
+  Ctrl+C (egy perc múlva törlődik, és nem kerül be az előzmények közé), így elég a Ctrl+V és
+  az Enter. Rendszergazdaként indítva a program maga írja be a jelszót, és megnyomja az OK
+  gombot, de csak akkor, ha az ablak pontosan ezt a gépet és ezt a felhasználót kéri. Mindkét
+  esetben csak az első kérésre válaszol, így egy hibás mentett jelszó nem zárolja a fiókot.
+  Rendszergazdaként futtatva a Windows nem engedi, hogy `.rdp` fájlokat az Intézőből az ablakba
+  húzz; az „Importálás…” gomb ilyenkor is működik.
 
 ## Kompatibilitás
 
