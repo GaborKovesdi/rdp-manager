@@ -60,7 +60,10 @@ A mesterjelszó sehol nincs eltárolva, csak a titkosítási kulcsot származtat
 - **Import**: az "Importálás…" gomb beolvassa a kiválasztott `.rdp` fájl(ok) `full address`,
   `username` és `domain` mezőit, és a többi megjelenítési/session beállítást (felbontás,
   átjárókiszolgáló stb.) is megőrzi. A forrásfájl titkosított jelszóblobja (`password 51`) nem
-  kerül be a tárolóba. Mivel exportált `.rdp` fájl soha nem tartalmaz visszafejthető jelszót,
+  kerül be a tárolóba. A meghajtók megosztását (`drivestoredirect`) sem veszi át: a program a
+  Windows biztonsági figyelmeztetésén maga pipálja be a kért átirányításokat, így egy kapott
+  fájl nem oszthatja meg észrevétlenül a helyi meghajtókat. Ha kell, a szerkesztő speciális
+  beállításai között visszaírható (pl. `drivestoredirect:s:*`). Mivel exportált `.rdp` fájl soha nem tartalmaz visszafejthető jelszót,
   import után rögtön megnyílik a szerkesztő, ahol megadható a jelszó. A fájlok a gomb helyett
   egyszerűen az ablakba is húzhatók (egyszerre több is).
 - **Ütköző nevek**: ha az importált kapcsolat neve már foglalt, a végére sorszám kerül

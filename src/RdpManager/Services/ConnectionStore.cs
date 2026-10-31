@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using RdpManager.Models;
 
@@ -213,7 +214,14 @@ public sealed class ConnectionStore : IDisposable
         // Created here rather than at startup, so a folder the app can't write to (such as
         // Program Files) surfaces as a save error the UI reports instead of a crash on launch.
         Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
-        File.WriteAllText(tempPath, content);
+
+        // Forced onto the disk before the swap: left in the write cache, a power cut just after it
+        // could keep the swap but not the data, and the old store would already be gone.
+        using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write))
+        {
+            stream.Write(Encoding.UTF8.GetBytes(content));
+            stream.Flush(flushToDisk: true);
+        }
 
         if (File.Exists(_filePath))
             File.Replace(tempPath, _filePath, null);
