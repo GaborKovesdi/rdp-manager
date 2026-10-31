@@ -1,3 +1,5 @@
+using System.IO;
+using System.Text;
 using RdpManager.Models;
 using RdpManager.Services;
 
@@ -11,6 +13,24 @@ public class RdpSettingsTests
             new[] { "desktopwidth:i:1280", "gatewayhostname:s:gw.example.local" },
             RdpFileService.ParseSettingLines(
                 "full address:s:srv\r\n\r\n  desktopwidth:i:1280  \nUsername:s:anna\npassword 51:b:01ABCD\ngatewayhostname:s:gw.example.local\n"));
+
+    [Fact]
+    public void ParseFile_LeavesThePasswordBlobAndDriveSharingBehind()
+    {
+        // UTF-16 with a byte-order mark, as mstsc saves .rdp files.
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.rdp");
+        File.WriteAllText(path,
+            "full address:s:srv\r\npassword 51:b:01ABCD\r\ndrivestoredirect:s:*\r\nRedirectDrives:i:1\r\ndesktopwidth:i:1280",
+            Encoding.Unicode);
+        try
+        {
+            Assert.Equal("full address:s:srv\r\ndesktopwidth:i:1280", RdpFileService.ParseFile(path).RawRdpContent);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 
     [Fact]
     public void GetSettingLines_FallsBackToTheDefaults() =>

@@ -51,6 +51,18 @@ public static class RdpFileService
         "prompt for credentials",
     };
 
+    // Keys an imported file never brings into the store. Its password blob is bound to whoever
+    // exported it and would only be an extra secret at rest. Drive sharing is left behind because
+    // the app approves mstsc's security warning by itself (see MstscPrompts), so a file received
+    // from someone else must not get the local drives shared unseen; the user can add it back in
+    // the editor's advanced settings. "redirectdrives" is the older key for the same.
+    private static readonly HashSet<string> ImportDropKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "password 51",
+        "drivestoredirect",
+        "redirectdrives",
+    };
+
     public static RdpConnection ParseFile(string filePath)
     {
         var content = File.ReadAllText(filePath);
@@ -59,9 +71,7 @@ public static class RdpFileService
         var connection = new RdpConnection
         {
             Name = Path.GetFileNameWithoutExtension(filePath),
-            // The source file's encrypted password blob is useless to us and would only be an
-            // extra secret at rest, so it never enters our store.
-            RawRdpContent = StripKey(content, "password 51"),
+            RawRdpContent = StripKeys(content, ImportDropKeys),
             Port = DefaultPort,
         };
 
@@ -136,14 +146,14 @@ public static class RdpFileService
         return result;
     }
 
-    private static string StripKey(string content, string key)
+    private static string StripKeys(string content, HashSet<string> keys)
     {
         var kept = new List<string>();
         foreach (var rawLine in content.Split('\n'))
         {
             var line = rawLine.TrimEnd('\r');
             var parts = line.Split(':', 3);
-            if (parts.Length == 3 && string.Equals(parts[0].Trim(), key, StringComparison.OrdinalIgnoreCase))
+            if (parts.Length == 3 && keys.Contains(parts[0].Trim()))
                 continue;
 
             kept.Add(line);
@@ -267,7 +277,9 @@ public static class RdpFileService
         var path = Path.Combine(directory, ToSafeFileName(connection.Name) + ".rdp");
         try
         {
-            File.WriteAllText(path, BuildRdpContent(connection));
+            // UTF-16 with a byte-order mark, as mstsc saves .rdp files itself: a file without the
+            // mark is read in the ANSI code page, which garbles an accented user name.
+            File.WriteAllText(path, BuildRdpContent(connection), Encoding.Unicode);
         }
         catch
         {
